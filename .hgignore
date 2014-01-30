@@ -1,2 +1,6 @@
 syntax: glob
 node_modules/
+css\jquery.widgetster.min.css
+js\jquery.widgetster.js
+js\jquery.widgetster.min.js
+tscommand.tmp.txt

@@ -7,8 +7,9 @@ module.exports = function(grunt)
         {
             banner: '/*<%= pkg.name %> - v<%= pkg.version %>'
                     + '\n<%= pkg.site %>'
-                    + '\nCopyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>'
-                    + '\nOriginal plugin: <%= pkg.originalPlugin.name %>(<%= pkg.originalPlugin.homepage %>) by <%= pkg.originalPlugin.author.name %>*/'
+                    + '\nCopyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %>;'
+                    + ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>'
+                    + '\nOriginal plugin: <%= pkg.originalPlugin.name %>(<%= pkg.originalPlugin.homepage %>) by <%= pkg.originalPlugin.author.name %>*/\n'
         },
         ts:
         {
@@ -34,7 +35,8 @@ module.exports = function(grunt)
             {
                 files: 
                 { 
-                    "<%= ts.tsc.out %>.min.js": ["<%= ts.tsc.out %>"] 
+                    "js/<%= pkg.pluginName %>.min.js": ["<%= ts.tsc.out %>"],
+                    "../demo/js/<%= pkg.pluginName %>.min.js": ["<%= ts.tsc.out %>"] 
                 }
             }
         },
@@ -48,7 +50,8 @@ module.exports = function(grunt)
                 },
                 files:
                 {
-                    "css/<%= pkg.pluginName %>.css": ["css/<%= pkg.pluginName %>.min.css"]
+                    "css/<%= pkg.pluginName %>.min.css": ["css/<%= pkg.pluginName %>.css"],
+                    "../demo/css/<%= pkg.pluginName %>.min.css": ["css/<%= pkg.pluginName %>.css"]
                 }
             }
         }
