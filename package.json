@@ -1,0 +1,54 @@
+{
+    "author": 
+    {
+        "name": "Dis Shishkov",
+        "email": "dis.shishkov.regs@outlook.com"
+    },
+    "licenses": 
+    [
+        {
+            "type": "MIT",
+            "url": "LICENSE"
+        }
+    ],
+
+    "originalPlugin": 
+    {
+        "author": 
+        {
+            "name": "ducksboard",
+            "email": "hackers@ducksboard.com"
+        },
+        "name": "gridster",
+        "homepage": "http://gridster.net/"
+    },
+
+    "name": "Widgetster",
+    "version": "0.1.0",
+    "description": "a drag-and-drop jquery plugin to build dashboard with widgets.",
+    "site": "https://bitbucket.org/DuC/widgetster",
+    "pluginName": "jquery.widgetster",
+
+    "repository": 
+    {
+        "type": "hg",
+        "url": "https://bitbucket.org/DuC/widgetster"
+    },
+    "bugs": 
+    {
+        "url": "https://bitbucket.org/DuC/widgetster/issues"
+    },
+
+    "dependencies": 
+    {
+        "jquery": ">=1.10"
+    },
+    "devDependencies": 
+    {
+        "grunt": "~0.4.2",
+        "grunt-contrib-watch": "~0.5.3",
+        "grunt-ts": "~1.6.4",
+        "grunt-contrib-uglify": "~0.3.2",
+        "grunt-contrib-cssmin": "~0.7.0"
+    }
+}
