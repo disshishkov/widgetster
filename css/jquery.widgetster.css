@@ -2,7 +2,7 @@
 {
     position:relative;
 }
-.widgetster .gs-w
+.widgetster .ws-w
 {
     z-index: 2;
     position: absolute;
@@ -23,13 +23,13 @@
     z-index:10!important;
 }
 
-.gs-resize-handle 
+.ws-resize-handle 
 {
     position: absolute;
     z-index: 1;
 }
 
-.gs-resize-handle-both 
+.ws-resize-handle-both 
 {
     width: 20px;
     height: 20px;
@@ -42,7 +42,7 @@
     z-index: 20;
 }
 
-.gs-resize-handle-x 
+.ws-resize-handle-x 
 {
     top: 0;
     bottom: 13px;
@@ -51,7 +51,7 @@
     cursor: e-resize;
 }
 
-.gs-resize-handle-y 
+.ws-resize-handle-y 
 {
     left: 0;
     right: 13px;
@@ -60,19 +60,22 @@
     cursor: s-resize;
 }
 
-.gs-w:hover .gs-resize-handle,
-.resizing .gs-resize-handle 
+.ws-w:hover .ws-resize-handle,
+.resizing .ws-resize-handle 
 {
     opacity: 1;
 }
 
-.gs-resize-handle,
-.gs-w.dragging .gs-resize-handle 
+.ws-resize-handle,
+.ws-w.dragging .ws-resize-handle 
 {
     opacity: 0;
 }
 
-.gs-resize-disabled .gs-resize-handle 
+.ws-resize-disabled .ws-resize-handle,
+.ws-restrict-x .ws-resize-handle-x, 
+.ws-restrict-y .ws-resize-handle-y,
+.ws-restrict-x.ws-restrict-y .ws-resize-handle
 {
     display: none !important;
 }

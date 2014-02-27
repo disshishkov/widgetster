@@ -1,5 +1,7 @@
 /// <reference path="definitions/jquery.d.ts" />
-/// <reference path="IWidgetsterOptions.ts"/>
+/// <reference path="IWidgetsterOptions.ts" />
+/// <reference path="ICoordsData.ts" />
+/// <reference path="Coords.ts" />
 
 module DS
 {
@@ -12,10 +14,13 @@ module DS
             )
         {
             console.log(this._options.BaseDimensions[1]);
+
+            return this;
         }
     }
 }
 
+// ReSharper disable once JsFunctionCanBeConvertedToLambda
 (function($) 
 {
     $.fn.Widgetster = function(options)
