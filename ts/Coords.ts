@@ -3,7 +3,7 @@
 
 module DS
 {
-    export class Coords
+    class Coords
     {
         private _data: ICoordsData = null;
         private _el: JQuery = null;
@@ -23,13 +23,11 @@ module DS
         {
             if (el.data("WidgetsterCoords"))
             {
-                return el.data("WidgetsterCoords");
+                this.Fill(el.data("WidgetsterCoords"));
             }
 
             this.Init(el);
             el.data("WidgetsterCoords", this);
-
-            return this;
         }
 
         public Update(data: ICoordsData): void
@@ -64,6 +62,21 @@ module DS
 
             this.IsCoords = true;
             this.Set(false, false);
+        }
+
+        private Fill(coords: Coords): void
+        {
+            this._data = coords._data;
+            this._el = coords._el;
+            this.IsCoords = coords.IsCoords;
+            this.X1 = coords.X1;
+            this.Y1 = coords.Y1;
+            this.X2 = coords.X2;
+            this.Y2 = coords.Y2;
+            this.CenterX = coords.CenterX;
+            this.CenterY = coords.CenterY;
+            this.Width = coords.Width;
+            this.Height = coords.Height;
         }
 
         private Set(isUpdate: boolean, isNotUpdateOffsets: boolean): void
