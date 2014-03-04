@@ -1,6 +1,6 @@
 module DS
 {
-    class Utils
+    export class Utils
     {
         public static Delay(func: Function, timeout: number): number
         {

@@ -3,12 +3,10 @@
 
 module DS
 {
-    class Coords
+    export class Coords
     {
         private _data: ICoordsData = null;
         private _el: JQuery = null;
-
-        public IsCoords: boolean = false;
 
         public X1: number;
         public Y1: number;
@@ -39,8 +37,7 @@ module DS
 
             if (data)
             {
-                var newData = $.extend({}, this._data, data);
-                this._data = newData;
+                this._data = $.extend({}, this._data, data);
                 this.Set(true, true);
             }
             else
@@ -60,7 +57,6 @@ module DS
                 this._el = el;
             }
 
-            this.IsCoords = true;
             this.Set(false, false);
         }
 
@@ -68,7 +64,7 @@ module DS
         {
             this._data = coords._data;
             this._el = coords._el;
-            this.IsCoords = coords.IsCoords;
+
             this.X1 = coords.X1;
             this.Y1 = coords.Y1;
             this.X2 = coords.X2;

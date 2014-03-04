@@ -3,7 +3,7 @@ Widgetster
 
 Widgetster is a [jQuery](http://jquery.com/) plugin to develop dashboard page based on widgets.
 
-Widgester is a re-wrote on [TypeScript](http://www.typescriptlang.org/) [Gridster](http://gridster.net/) which was developed by [Ducksboard](https://github.com/ducksboard).
+Widgetster is a re-wrote on [TypeScript](http://www.typescriptlang.org/) [Gridster](http://gridster.net/) which was developed by [Ducksboard](https://github.com/ducksboard).
 
 [Download](https://bitbucket.org/DuC/widgetster/downloads)
 
