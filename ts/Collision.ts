@@ -1,7 +1,3 @@
-/// <reference path="definitions/jquery.d.ts" />
-///<reference path="ICollisionOptions.ts" />
-///<reference path="Coords.ts" />
-
 module DS
 {
     export class Collision
@@ -83,6 +79,7 @@ module DS
 
             while(count--)
             {
+                //NOTE: decide use or not _isInContext
                 var collider: JQuery = /*this._isInContext ? */$(this._colliders[count])/* : this._colliders[count]*/;
                 var colliderCoords = new Coords(collider);
 

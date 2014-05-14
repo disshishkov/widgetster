@@ -1,10 +1,15 @@
-/// <reference path="definitions/jquery.d.ts" />
 /// <reference path="IWidgetsterOptions.ts" />
 /// <reference path="ICoordsData.ts" />
 /// <reference path="ICollisionOptions.ts" />
+/// <reference path="IDraggableOptions.ts" />
+/// <reference path="ITouchEvents.ts" />
+/// <reference path="IPointerData.ts" />
+/// <reference path="DraggableData.ts" />
 /// <reference path="Coords.ts" />
 /// <reference path="Utils.ts" />
 /// <reference path="Collision.ts" />
+/// <reference path="PointerEvents.ts" />
+/// <reference path="Draggable.ts" />
 
 module DS
 {
@@ -24,7 +29,7 @@ module DS
             this._options = $.extend(true, {}, this._defaultOptions, options);
             console.log(this._options.BaseDimensions[1]);
             console.log(this._el);
-            return this;
+            return this;            
         }
     }
 }
