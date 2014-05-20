@@ -4,8 +4,8 @@ module DS
     {
         private _defaultOptions: IDraggableOptions =
         {
-            Items: "li",
-            Distance: 1,
+            Items: ".ws-w",
+            Distance: 4,
             IsLimit: true,
             OffsetLeft: 0,
             IsAutoScroll: true,
@@ -49,11 +49,11 @@ module DS
             this._isTouch ? "touchend.widgetster-draggable" : "mouseup.widgetster-draggable"
         );
 
-        constructor(el: HTMLElement, options: IDraggableOptions)
+        constructor(container: JQuery, options: IDraggableOptions)
         {
             this._options = $.extend({}, this._defaultOptions, options);
             this._playerMinLeft = 0 + this._options.OffsetLeft;
-            this._container = $(el);
+            this._container = container;
             this.CalculatePositions();
             this._container.css("position", "relative");
 

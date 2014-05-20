@@ -24,7 +24,16 @@ module DS
                 this.Fill(el.data("WidgetsterCoords"));
             }
 
-            this.Init(el);
+            if (el[0] && $.isPlainObject(el[0]))
+            {
+                this._data = el[0];
+            }
+            else
+            {
+                this._el = el;
+            }
+
+            this.Set(false, false);
             el.data("WidgetsterCoords", this);
         }
 
@@ -44,20 +53,6 @@ module DS
             {
                 this.Set(true, false);
             }
-        }
-
-        private Init(el: JQuery): void
-        {
-            if (el[0] && $.isPlainObject(el[0]))
-            {
-                this._data = el[0];
-            }
-            else
-            {
-                this._el = el;
-            }
-
-            this.Set(false, false);
         }
 
         private Fill(coords: Coords): void
