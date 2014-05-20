@@ -6,6 +6,8 @@ module DS
         Left: number;
         Width: number;
         Height: number;
+        Row: number;
+        Column: number;
     }
 }
 

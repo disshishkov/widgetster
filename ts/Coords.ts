@@ -5,7 +5,7 @@ module DS
 {
     export class Coords
     {
-        private _data: ICoordsData = null;
+        public Data: ICoordsData = null;
         private _el: JQuery = null;
 
         public X1: number;
@@ -26,7 +26,7 @@ module DS
 
             if (el[0] && $.isPlainObject(el[0]))
             {
-                this._data = el[0];
+                this.Data = el[0];
             }
             else
             {
@@ -46,7 +46,7 @@ module DS
 
             if (data)
             {
-                this._data = $.extend({}, this._data, data);
+                this.Data = $.extend({}, this.Data, data);
                 this.Set(true, true);
             }
             else
@@ -57,7 +57,7 @@ module DS
 
         private Fill(coords: Coords): void
         {
-            this._data = coords._data;
+            this.Data = coords.Data;
             this._el = coords._el;
 
             this.X1 = coords.X1;
@@ -80,28 +80,27 @@ module DS
 
                 if (!isUpdate)
                 {
-                    this._data.Top = jqCoords.top;
-                    this._data.Left = jqCoords.left;
-                    this._data.Width = el.width();
-                    this._data.Height = el.height();
+                    this.Data.Top = jqCoords.top;
+                    this.Data.Left = jqCoords.left;
+                    this.Data.Width = el.width();
+                    this.Data.Height = el.height();
                 }
 
                 if (isUpdate && !isNotUpdateOffsets)
                 {
-                    this._data.Top = jqCoords.top;
-                    this._data.Left = jqCoords.left;
+                    this.Data.Top = jqCoords.top;
+                    this.Data.Left = jqCoords.left;
                 }
             }
 
-            this.X1 = this._data.Left;
-            this.Y1 = this._data.Top;
-            this.X2 = this._data.Left + this._data.Width;
-            this.Y2 = this._data.Top + this._data.Height;
-            this.CenterX = this._data.Left + (this._data.Width / 2);
-            this.CenterY = this._data.Top + (this._data.Height / 2);
-            this.Width = this._data.Width;
-            this.Height = this._data.Height;
-            //TODO: ?? this.coords.el  = el || false ;
+            this.X1 = this.Data.Left;
+            this.Y1 = this.Data.Top;
+            this.X2 = this.Data.Left + this.Data.Width;
+            this.Y2 = this.Data.Top + this.Data.Height;
+            this.CenterX = this.Data.Left + (this.Data.Width / 2);
+            this.CenterY = this.Data.Top + (this.Data.Height / 2);
+            this.Width = this.Data.Width;
+            this.Height = this.Data.Height;
         }
     }
 }  

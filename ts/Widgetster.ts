@@ -53,11 +53,16 @@ module DS
         private _minWidgetWidth: number;
         private _minWidgetHeight: number;
         private _containerWidth: number;
+        private _colsCount: number;
+        private _rowsCount: number;
         private _basePosition: JQueryCoordinates = <JQueryCoordinates>{};
         private _resizeHandleTemplate: string;
+        
         private _resizeApi: Draggable;
+        private _dragApi: Draggable;
         
         private _fauxGrid: Coords[];
+        private _gridMap: any[]; //TODO: detect type
 
         constructor(el: JQuery, options: IWidgetsterOptions)
         {
@@ -80,7 +85,7 @@ module DS
                 }).join("");
             }
             
-            //TODO: generate_grid_and_stylesheet();
+            this.GenerateGrid();
             //TODO: get_widgets_from_DOM();
             //TODO: set_dom_grid_height();
             this._wrapper.addClass("ready");
@@ -121,22 +126,90 @@ module DS
 
             this._fauxGrid.forEach($.proxy((coords?: Coords) => 
             {
-                coords.Update(
+                coords.Update(<ICoordsData>
                 {
-                    Top: this._basePosition.top + (coords.Height - 1) * this._minWidgetHeight,//TODO: coords.data.row
-                    Left: this._basePosition.left + (coords.Width - 1) * this._minWidgetWidth,//TODO: coords.data.col
+                    Top: this._basePosition.top + (coords.Data.Row - 1) * this._minWidgetHeight,
+                    Left: this._basePosition.left + (coords.Data.Column - 1) * this._minWidgetWidth,
                     Width: coords.Width,
                     Height: coords.Height
                 });
             }, this));
         }
+        
+        private GenerateGrid(): void
+        {
+            var wrapperWidth: number = this._wrapper.width();
+            
+            var maxCols: number = this._options.MaxCols;
+            var minCols: number = Math.max.apply(Math, this._widgetElements.map((i, w) => { return $(w).attr("data-ws-col"); }));
+            
+            // get all rows that could be occupied by the current widgets
+            var maxRows: number = this._options.ExtraRows;
+            this._widgetElements.each((i, w) => { maxRows += (+$(w).attr("data-ws-sizey")); });
+            
+            this._colsCount = Math.max(minCols, (Math.floor(wrapperWidth / this._minWidgetWidth) + this._options.ExtraCols), this._options.MinCols);
+            if (maxCols && maxCols >= minCols && maxCols < this._colsCount)
+            {
+                this._colsCount = maxCols;
+            }
+            
+            this._rowsCount = Math.max(maxRows, this._options.MinRows);
+            
+            this._basePosition.left = (this._windowElement.width() - wrapperWidth) / 2;
+            this._basePosition.top = this._wrapper.offset().top;
+            
+            // left and right gutters not included
+            this._containerWidth = (this._colsCount * this._options.BaseDimensions[0]) + ((this._colsCount - 1) * 2 * this._options.Margins[0]);
+            
+            if (this._resizeApi)
+            {
+                this._resizeApi.UpdateOptions(<IDraggableOptions>{ ContainerWidth: this._containerWidth });
+            }
+            
+            if (this._dragApi)
+            {
+                this._dragApi.UpdateOptions(<IDraggableOptions>{ ContainerWidth: this._containerWidth });
+            }
+            
+            this._fauxGrid = [];
+            this._gridMap = [];
+            
+            for(var col = this._colsCount; col > 0; col--)
+            {
+                this._gridMap[col] = [];
+                for(var row = this._rowsCount; row > 0; row--)
+                {
+                    this.AddFauxCell(row, col);
+                }
+            }
+        }
+        
+        private AddFauxCell(row: number, col: number): void
+        {
+            if (!$.isArray(this._gridMap[col]))
+            {
+                this._gridMap[col] = [];
+            }
+            this._gridMap[col][row] = false;
+            this._fauxGrid.push(new Coords($(
+                {
+                    Top: this._basePosition.top + ((row - 1) * this._minWidgetHeight),
+                    Left: this._basePosition.left + ((col - 1) * this._minWidgetWidth),
+                    Width: this._minWidgetWidth,
+                    Height: this._minWidgetHeight,
+                    Row: row,
+                    Column: col
+                })));
+        }
 
         private OnResize(): void
         {
+            //TODO: OnResize
         }
         
         private OnStopResize(event: JQueryEventObject, data: DraggableData): void
         {
+            //TODO: OnStopResize
         }
     }
 }
