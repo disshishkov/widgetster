@@ -1,5 +1,10 @@
 module DS
 {
+    /**
+     * A basic drag implementation for DOM elements inside a container.
+     * 
+     * @class Draggable
+     */ 
     export class Draggable
     {
         private _defaultOptions: IDraggableOptions =
@@ -49,6 +54,12 @@ module DS
             this._isTouch ? "touchend.widgetster-draggable" : "mouseup.widgetster-draggable"
         );
 
+        /**
+         * Initialize the Draggable object.
+         * 
+         * @param {JQuery} [container] The JQuery object.
+         * @param {IDraggableOptions} [options] An object of options (see IDraggableOptions).
+         */ 
         constructor(container: JQuery, options: IDraggableOptions)
         {
             this._options = $.extend({}, this._defaultOptions, options);
@@ -87,11 +98,23 @@ module DS
                 Utils.Throttle($.proxy(this.CalculatePositions, this), 200));
         }
         
+        /**
+         * Update options.
+         * 
+         * @param {IDraggableOptions} [options] The IDraggableOptions object.
+         * 
+         * @method UpdateOptions.
+         */ 
         public UpdateOptions(options: IDraggableOptions): void
         {
             this._options = $.extend({}, this._options, options);
         }
 
+        /**
+         * Destrois the instance.
+         * 
+         * @method Destroy.
+         */ 
         public Destroy(): void
         {
             this.Disable();
@@ -100,11 +123,21 @@ module DS
             this._windowElement.off(".widgetster-draggable");
         }
 
+        /**
+         * Disables the instance.
+         * 
+         * @method Disable.
+         */ 
         public Disable(): void
         {
             this._isDisabled = true;
         }
 
+        /**
+         * Enables the instance.
+         * 
+         * @method Enable.
+         */ 
         public Enable(): void
         {
             this._isDisabled = false;

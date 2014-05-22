@@ -15,6 +15,11 @@
 
 module DS
 {
+    /**
+     * The Widgetster JQuery plugin.
+     * 
+     * @class Widgetster
+     */ 
     export class Widgetster
     {
         private _defaultOptions: IWidgetsterOptions =
@@ -64,6 +69,12 @@ module DS
         private _fauxGrid: Coords[];
         private _gridMap: any[]; //TODO: detect type
 
+        /**
+         * Initialize the Widgetster object.
+         * 
+         * @param {JQuery} [container] The JQuery object that contains all widgets.
+         * @param {IWidgetsterOptions} [options] An object of options (see IWidgetsterOptions).
+         */ 
         constructor(el: JQuery, options: IWidgetsterOptions)
         {
             this._options = $.extend(true, {}, this._defaultOptions, options);
@@ -85,8 +96,8 @@ module DS
                 }).join("");
             }
             
-            this.GenerateGrid();
-            //TODO: get_widgets_from_DOM();
+            this.GenerateGrid();            
+            this.GetWidgetsFromDom();
             //TODO: set_dom_grid_height();
             this._wrapper.addClass("ready");
             //TODO: draggable();
@@ -113,13 +124,7 @@ module DS
             return this;            
         }
         
-        /**
-        * Recalculates the offsets for the faux grid. 
-        * You need to use it when the browser is resized.
-        *
-        * @method ReCalculateFauxGrid
-        **/
-        public ReCalculateFauxGrid(): void
+        private ReCalculateFauxGrid(): void
         {
             this._basePosition.left = (this._windowElement.width() - this._wrapper.width()) / 2;
             this._basePosition.top = this._wrapper.offset().top;
@@ -200,6 +205,98 @@ module DS
                     Row: row,
                     Column: col
                 })));
+        }
+        
+        private GetWidgetsFromDom(): void
+        {
+            this._widgetElements.each($.proxy((i?, w?) => { this.RegisterWidget($(w)); }, this));
+        }
+        
+        private RegisterWidget(el: JQuery): void
+        {
+            var widget: IWidget = 
+                {
+                    Column: parseInt(el.attr("data-ws-col"), 10),
+                    Row: parseInt(el.attr("data-ws-row"), 10),
+                    SizeX: parseInt(el.attr("data-ws-sizex"), 10),
+                    SizeY: parseInt(el.attr("data-ws-sizey"), 10),
+                    MaxSizeX: parseInt(el.attr("data-ws-max-sizex"), 10) || null,
+                    MaxSizeY: parseInt(el.attr("data-ws-max-sizey"), 10) || null,
+                    Element: el
+                };
+            
+            //TODO: IsCanMoveTo widget.Element should be null
+            if (this._options.IsAvoidOverlap && !this.IsCanMoveTo(widget))
+            {
+                $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
+                el.attr(
+                {
+                    "data-ws-col": widget.Column,
+                    "data-ws-row": widget.Row,
+                    "data-ws-sizex": widget.SizeX,
+                    "data-ws-sizey": widget.SizeY
+                }).css(
+                {
+                    "left": this.GetColumnStyle(widget.Column),
+                    "top": this.GetRowStyle(widget.Row),
+                    "width": this.GetXStyle(widget.SizeX),
+                    "height": this.GetYStyle(widget.SizeY)
+                });
+            }
+            
+            // attach Coords object to player.
+            new Coords(el, widget);
+            
+            this.AddToGridMap(widget);
+            
+            if (this._options.Resize.IsEnabled)
+            {
+                var appendTo: string = this._options.Resize.HandleAppendTo;
+                $(this._resizeHandleTemplate).appendTo(appendTo ? $(appendTo, el) : el);
+            }
+        }
+        
+        private AddToGridMap(widget: IWidget): void
+        {
+            //TODO: AddToGridMap
+        }
+        
+        private GetColumnStyle(col: number): number
+        {
+            return ((col - 1) * this._options.BaseDimensions[0]) 
+                + ((col - 1) * this._options.Margins[0]) 
+                + (col * this._options.Margins[0]);
+        }
+        
+        private GetRowStyle(row: number): number
+        {
+            return ((row - 1) * this._options.BaseDimensions[1]) 
+                + ((row - 1) * this._options.Margins[1]) 
+                + (row * this._options.Margins[1]);
+        }
+        
+        private GetXStyle(x: number): number
+        {
+            return (x * this._options.BaseDimensions[0] 
+                + (x - 1) * (this._options.Margins[0] * 2));
+        }
+        
+        private GetYStyle(y: number): number
+        {
+            return (y * this._options.BaseDimensions[1] 
+                + (y - 1) * (this._options.Margins[1] * 2));
+        }
+        
+        private IsCanMoveTo(widget: IWidget, maxRows?: number): boolean
+        {
+            //TODO: IsCanMoveTo
+            return false;
+        }
+        
+        private GetNextPosition(sizeX: number, sizeY: number) : IWidget
+        {
+            //TODO: GetNextPosition
+            return <IWidget>{};
         }
 
         private OnResize(): void

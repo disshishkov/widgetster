@@ -6,5 +6,8 @@ module DS
         Row: number;
         SizeX: number;
         SizeY: number;
+        MaxSizeX: number;
+        MaxSizeY: number;
+        Element: JQuery;
     }
 }

@@ -1,5 +1,10 @@
 module DS
 {
+    /**
+     * Detects collisions between a DOM element against other DOM elements or Coords objects.
+     * 
+     * @class Collision
+     */ 
     export class Collision
     {
         private _defaultOptions: ICollisionOptions =
@@ -22,6 +27,13 @@ module DS
         public ColliderCoords: Coords;
         public PlayerCoords: Coords;
 
+        /**
+         * Initialize the Collision object.
+         * 
+         * @param {JQuery} [el] The JQuery object.
+         * @param {any} [colliders] Can be a jQuery collection of HTMLElements or an Array of Coords instances.
+         * @param {ICollisionOptions} [options] An object of options (see ICollisionOptions).
+         */ 
         constructor(el?: JQuery, colliders?: any, options?: ICollisionOptions)
         {
             if (!el && !colliders && !options)
@@ -44,6 +56,15 @@ module DS
             this.FindCollisions(null);
         }
 
+        /**
+         * Returns array of closest colliders.
+         * 
+         * @param {ICoordsData} [playerCoordsData] The ICoordsData object.
+         * 
+         * @return {Collision[]} Array of Collision instances.
+         * 
+         * @method GetClosestColliders.
+         */ 
         public GetClosestColliders(playerCoordsData: ICoordsData): Collision[]
         {
             var colliders: Collision[] = this.FindCollisions(playerCoordsData);

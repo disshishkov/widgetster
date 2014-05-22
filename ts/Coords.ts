@@ -3,11 +3,18 @@
 
 module DS
 {
+    /**
+     * Represent object with coordinates to simulate DOM elements on the screen.
+     * 
+     * @class Coords
+     */ 
     export class Coords
     {
-        public Data: ICoordsData = null;
         private _el: JQuery = null;
-
+        
+        public Data: ICoordsData = null;        
+        public Grid: IWidget;
+        
         public X1: number;
         public Y1: number;
         public X2: number;
@@ -17,7 +24,13 @@ module DS
         public Width: number;
         public Height: number;
 
-        constructor(el: JQuery)
+        /**
+         * Initialize the Coords object.
+         * 
+         * @param {JQuery} [el] The JQuery object. Can be as element and object with data (see ICoordsData).
+         * @param {IWidget} [grid] The grid of current element (see IWidget).
+         */ 
+        constructor(el: JQuery, grid?: IWidget)
         {
             if (el.data("WidgetsterCoords"))
             {
@@ -34,9 +47,22 @@ module DS
             }
 
             this.Set(false, false);
+            
+            if (grid)
+            {
+                this.Grid = grid;
+            }
+            
             el.data("WidgetsterCoords", this);
         }
 
+        /**
+         * Updates data.
+         * 
+         * @param {ICoordsData} [data] The ICoordsData object.
+         * 
+         * @method Update.
+         */ 
         public Update(data: ICoordsData): void
         {
             if (!data && !this._el)
@@ -55,6 +81,13 @@ module DS
             }
         }
 
+        /**
+         * Fills current instance state from another  object.
+         * 
+         * @param {Coords} [coords] The Coords object.
+         * 
+         * @method Fill.
+         */ 
         private Fill(coords: Coords): void
         {
             this.Data = coords.Data;
@@ -70,6 +103,14 @@ module DS
             this.Height = coords.Height;
         }
 
+        /**
+         * Sets properties for instance.
+         * 
+         * @param {boolean} [isUpdate] Indicate when need to update data.
+         * @param {boolean} [isNotUpdateOffsets] Indicate when not need to update offsets.
+         * 
+         * @method Set.
+         */ 
         private Set(isUpdate: boolean, isNotUpdateOffsets: boolean): void
         {
             var el: JQuery = this._el;
