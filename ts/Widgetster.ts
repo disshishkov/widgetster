@@ -54,6 +54,9 @@ module DS
         private _wrapper: JQuery;
         private _widgetElements: JQuery;
         private _changedWidgetElements: JQuery;
+        private _resizedWidgetElements: JQuery;
+        private _player: JQuery;
+        private _helper: JQuery;
         
         private _minWidgetWidth: number;
         private _minWidgetHeight: number;
@@ -98,20 +101,49 @@ module DS
             
             this.GenerateGrid();            
             this.GetWidgetsFromDom();
-            //TODO: set_dom_grid_height();
+            this.SetDomGridHeight();
             this._wrapper.addClass("ready");
-            //TODO: draggable();
+            
+            var resizeHandle: string = "." + this._options.Resize.HandleClass;
+            var draggableOptions: IDraggableOptions = $.extend(true, {}, this._options.Draggable, <IDraggableOptions>
+            {
+                OffsetLeft: this._options.Margins[0],
+                ContainerWidth: this._containerWidth,
+                IgnoreDragging: ["INPUT", "TEXTAREA", "SELECT", "BUTTON", resizeHandle],
+                OnStart: $.proxy((event?: JQueryEventObject, data?: DraggableData) =>
+                {
+                    this._widgetElements.filter(".player-revert").removeClass("player-revert");
+                    this._player = data.Player;                    
+                    this._helper = data.Helper;
+                    
+                    //TODO: on_start_drag (insert here)
+                    this._el.trigger("dragstart.widgetster");
+                }, this),
+                OnStop: $.proxy((event?: JQueryEventObject, data?: DraggableData) =>
+                {
+                    //TODO: on_stop_drag (insert here)
+                    this._el.trigger("dragstop.widgetster");
+                }, this),
+                OnDrag: Utils.Throttle((event: JQueryEventObject, data: DraggableData) => 
+                {
+                    //TODO: on_drag (insert here)
+                    this._el.trigger("drag.widgetster");
+                }, 60)
+            });
+            
+            this._dragApi = new Draggable(this._el, draggableOptions);
             
             if (this._options.Resize.IsEnabled)
             {
                 this._resizeApi = new Draggable(this._el, <IDraggableOptions>
                 {
-                    Items: "." + this._options.Resize.HandleClass,
+                    Items: resizeHandle,
                     Distance: 1,
                     OffsetLeft: this._options.Margins[0],
                     ContainerWidth: this._containerWidth,
                     IsMoveElement: false,
                     OnDrag: Utils.Throttle($.proxy(this.OnResize, this), 60),
+                    OnStart: $.proxy(this.OnStartResize, this),
                     OnStop: $.proxy((event?, data?) =>
                         {
                             Utils.Delay($.proxy(() => { this.OnStopResize(event, data); }, this), 120);
@@ -122,6 +154,37 @@ module DS
             this._windowElement.bind("resize.widgetster", Utils.Throttle($.proxy(this.ReCalculateFauxGrid, this), 200));
             
             return this;            
+        }
+        
+        private SetDomGridHeight(): void
+        {
+            var rows: number[] = [];            
+            for(var c = this._gridMap.length - 1; c >= 1; c--)
+            {
+                for (var r = this._gridMap[c].length - 1; r >= 1; r--)
+                {
+                    if (this.IsWidget(c, r))
+                    {
+                        rows.push(r);
+                        break;
+                    }
+                }
+            }            
+            var row: number = Math.max.apply(Math, rows);
+            
+            this._el.css("height", row  * this._minWidgetHeight);
+        }
+        
+        private IsWidget(col: number, row: number): boolean
+        {
+            var cell = this._gridMap[col];
+            
+            if (!cell)
+            {
+                return false;
+            }
+            //NOTE: I made simplify need check.
+            return cell[row] || false;
         }
         
         private ReCalculateFauxGrid(): void
@@ -307,6 +370,15 @@ module DS
         private OnStopResize(event: JQueryEventObject, data: DraggableData): void
         {
             //TODO: OnStopResize
+        }
+        
+        private OnStartResize(event: JQueryEventObject, data: DraggableData): void
+        {
+            this._resizedWidgetElements = data.Player.closest(".ws-w");
+            
+            var resizeCoords: Coords = new Coords(this._resizedWidgetElements);
+            var resizeGrid: IWidget = resizeCoords.Grid;
+            //TODO: OnStartResize
         }
     }
 }
