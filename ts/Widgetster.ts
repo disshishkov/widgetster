@@ -70,7 +70,7 @@ module DS
         private _dragApi: Draggable;
         
         private _fauxGrid: Coords[];
-        private _gridMap: any[]; //TODO: detect type
+        private _gridMap: JQuery[][];
 
         /**
          * Initialize the Widgetster object.
@@ -143,7 +143,7 @@ module DS
                     ContainerWidth: this._containerWidth,
                     IsMoveElement: false,
                     OnDrag: Utils.Throttle($.proxy(this.OnResize, this), 60),
-                    OnStart: $.proxy(this.OnStartResize, this),
+                    OnStart: $.proxy((event?, data?) => { this.OnStartResize(event, data); }, this),
                     OnStop: $.proxy((event?, data?) =>
                         {
                             Utils.Delay($.proxy(() => { this.OnStopResize(event, data); }, this), 120);
@@ -163,7 +163,7 @@ module DS
             {
                 for (var r = this._gridMap[c].length - 1; r >= 1; r--)
                 {
-                    if (this.IsWidget(c, r))
+                    if (this.GetWidgetElement(c, r) != null)
                     {
                         rows.push(r);
                         break;
@@ -172,19 +172,13 @@ module DS
             }            
             var row: number = Math.max.apply(Math, rows);
             
-            this._el.css("height", row  * this._minWidgetHeight);
+            this._el.css("height", row * this._minWidgetHeight);
         }
         
-        private IsWidget(col: number, row: number): boolean
+        private GetWidgetElement(col: number, row: number): JQuery
         {
             var cell = this._gridMap[col];
-            
-            if (!cell)
-            {
-                return false;
-            }
-            //NOTE: I made simplify need check.
-            return cell[row] || false;
+            return !cell ? null : cell[row];
         }
         
         private ReCalculateFauxGrid(): void
@@ -258,7 +252,7 @@ module DS
             {
                 this._gridMap[col] = [];
             }
-            this._gridMap[col][row] = false;
+            this._gridMap[col][row] = null;
             this._fauxGrid.push(new Coords($(
                 {
                     Top: this._basePosition.top + ((row - 1) * this._minWidgetHeight),
@@ -288,8 +282,7 @@ module DS
                     Element: el
                 };
             
-            //TODO: IsCanMoveTo widget.Element should be null
-            if (this._options.IsAvoidOverlap && !this.IsCanMoveTo(widget))
+            if (this._options.IsAvoidOverlap && !this.IsCanMoveTo(widget, true))
             {
                 $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
                 el.attr(
@@ -321,7 +314,47 @@ module DS
         
         private AddToGridMap(widget: IWidget): void
         {
+            this.UpdateWidgetPosition(widget, widget.Element);
             //TODO: AddToGridMap
+        }
+        
+        private RemoveFromGridMap(widget: IWidget): void
+        {
+            this.UpdateWidgetPosition(widget, null);
+        }
+        
+        private UpdateWidgetPosition(widget: IWidget, value: JQuery): void
+        {
+            this.ForEachCellOccupied(widget, (col, row) => 
+            {
+                if (this._gridMap[col])
+                {
+                    this._gridMap[col][row] = value;
+                }
+            });
+        }
+        
+        private ForEachCellOccupied(widget: IWidget, callback: Function): void
+        {
+            this.ForEachColumnOccupied(
+                widget, 
+                (col) => { this.ForEachRowOccupied(widget, (row) => { callback.call(this, col, row); }); });
+        }
+        
+        private ForEachRowOccupied(widget: IWidget, callback: Function): void
+        {
+            for (var i = 0; i < widget.SizeY; i++)
+            {
+                callback.call(this, widget.Row + i);
+            }
+        }
+        
+        private ForEachColumnOccupied(widget: IWidget, callback: Function): void
+        {
+            for (var i = 0; i < widget.SizeX; i++)
+            {
+                callback.call(this, widget.Column + i);
+            }
         }
         
         private GetColumnStyle(col: number): number
@@ -350,16 +383,61 @@ module DS
                 + (y - 1) * (this._options.Margins[1] * 2));
         }
         
-        private IsCanMoveTo(widget: IWidget, maxRows?: number): boolean
+        private IsCanMoveTo(widget: IWidget, isNonSeeElement: boolean, maxRows?: number): boolean
         {
-            //TODO: IsCanMoveTo
-            return false;
+            var result: boolean = true;
+            
+            // Prevents widgets go out of the grid.
+            if (((widget.Column + widget.SizeX - 1) > this._colsCount)
+                || (maxRows && maxRows < (widget.Row + widget.SizeY - 1)))
+            {
+                return false;
+            }
+            
+            this.ForEachCellOccupied(widget, (col, row) => 
+            {
+                var widgetInGridMap = this.GetWidgetElement(col, row);
+                if (widgetInGridMap != null && (isNonSeeElement || widgetInGridMap.is(widget.Element)))
+                {
+                    result = false;
+                }
+            });
+
+            return result;
         }
         
         private GetNextPosition(sizeX: number, sizeY: number) : IWidget
         {
-            //TODO: GetNextPosition
-            return <IWidget>{};
+            sizeX || (sizeX = 1);
+            sizeY || (sizeY = 1);
+            
+            var colsLength: number = this._gridMap.length;
+            var rowsLength: number = 0;
+            var validPositions: IWidget[] = [];
+            
+            for (var c = 1; c < colsLength; c++)
+            {
+                rowsLength = this._gridMap[c].length;
+                for (var r = 1; r <= rowsLength; r++)
+                {
+                    var widget: IWidget = <IWidget>{ Column: c, Row: r, SizeX: sizeX, SizeY: sizeY };
+                    if (this.IsCanMoveTo(widget, true))
+                    {
+                        validPositions.push(widget);
+                    }
+                }
+            }
+            
+            if (validPositions.length > 0)
+            {
+                validPositions = validPositions.sort((a, b) => 
+                {
+                    return (a.Row > b.Row || a.Row == b.Row && a.Column > b.Column) ? 1 : -1;
+                });
+                return validPositions[0];
+            }
+            
+            return null;
         }
 
         private OnResize(): void
