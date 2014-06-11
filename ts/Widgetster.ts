@@ -8,6 +8,7 @@
 /// <reference path="IWidget.ts" />
 /// <reference path="DraggableData.ts" />
 /// <reference path="Coords.ts" />
+/// <reference path="Cell.ts" />
 /// <reference path="Utils.ts" />
 /// <reference path="Collision.ts" />
 /// <reference path="PointerEvents.ts" />
@@ -71,6 +72,9 @@ module DS
         
         private _fauxGrid: Coords[];
         private _gridMap: JQuery[][];
+        
+        private _cellsOccupiedByPlaceholder: Cell = new Cell();
+        private _cellsOccupiedByPlayer: Cell = new Cell();
 
         /**
          * Initialize the Widgetster object.
@@ -357,6 +361,117 @@ module DS
             }
         }
         
+        private ForEachWidgetBelow(col: number, row: number, callback: Function): void
+        {
+            var widgetsInColumn: JQuery[] = this._gridMap[col];
+            if (!widgetsInColumn)
+            {
+                return;
+            }
+            
+            var max: number;
+            var matched: JQuery[] = [];
+            var tempRow: number = row;
+            
+            for (tempRow = row + 1, max = widgetsInColumn.length; tempRow < max; tempRow++)
+            {
+                var widgetElement: JQuery = widgetsInColumn[tempRow];
+                if (this.GetWidgetElement(col, tempRow) != null && $.inArray(widgetElement, matched) === -1)
+                {                    
+                    matched.push(widgetElement);
+                    if (callback.call(widgetElement, widgetElement, col, tempRow))
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        
+        private GetWidgetsBelow(widget: IWidget): JQuery[]
+        {
+            var nextRow: number = widget.Row + widget.SizeY - 1;
+            var result: JQuery[] = [];
+            
+            this.ForEachColumnOccupied(widget, (col) =>
+            {
+                this.ForEachWidgetBelow(col, nextRow, (w, c, r) =>
+                {
+                    if (!this.IsPlayer(w) && $.inArray(w, result) === -1)
+                    {
+                        result.push(w);
+                        return true;
+                    }
+                });
+            });
+            
+            return this.SortWidgetsElementsByRowAsc(result);
+        }
+        
+        private MoveWidgetUp(el: JQuery, yUnits): void
+        {
+            yUnits || (yUnits = 1);
+            
+            var widget: IWidget = new Coords(el).Grid;
+            var actualRow = widget.Row;
+            var movedWidgets: JQuery[] = [];
+            var isCanGoUp: boolean = true;
+            
+            if (!this.IsCanGoUp(widget))
+            {
+                return;
+            }
+            
+            this.ForEachColumnOccupied(widget, (col) =>
+            {
+                if ($.inArray(el, movedWidgets) === -1)                
+                {
+                }
+            });
+            //TODO: MoveWidgetUp
+        }
+        
+        private SortWidgetsElementsByRowAsc(widgets: JQuery[]): JQuery[]
+        {
+            return widgets.sort((a, b) => { return (new Coords(a).Grid.Row > new Coords(b).Grid.Row) ? 1 : -1; });
+        }
+        
+        private SortWidgetsByRowAsc(widgets: IWidget[]): IWidget[]
+        {
+            return widgets.sort((a, b) => { return (a.Row > b.Row) ? 1 : -1; });
+        }
+        
+        private IsPlayerInGrid(col: number, row: number): boolean
+        {
+            if (!this._gridMap[col])
+            {
+                return false;
+            }
+
+            return this.IsPlayer(this._gridMap[col][row]);
+        }
+        
+        private IsPlayer(el: JQuery): boolean
+        {
+            return el && (el.is(this._player) || el.is(this._helper));
+        }
+        
+        private GetCellsOccupied(widget: IWidget): Cell
+        {
+            var cells: Cell = new Cell();
+            
+            for (var i = 0; i < widget.SizeX; i++)
+            {
+                cells.Columns.push(widget.Column + i);
+            }
+            
+            for (var i = 0; i < widget.SizeY; i++)
+            {
+                cells.Rows.push(widget.Row + i);
+            }
+            
+            return cells;
+        }
+        
         private GetColumnStyle(col: number): number
         {
             return ((col - 1) * this._options.BaseDimensions[0]) 
@@ -381,6 +496,60 @@ module DS
         {
             return (y * this._options.BaseDimensions[1] 
                 + (y - 1) * (this._options.Margins[1] * 2));
+        }
+        
+        private IsCanGoUp(widget: IWidget): boolean
+        {
+            var initialRow: number = widget.Row;
+            var prevRow: number = initialRow - 1;
+            
+            if (initialRow == 1)
+            {
+                return false;
+            }
+            
+            var result: boolean = true;
+            
+            this.ForEachColumnOccupied(widget, (col) => 
+            {
+                if (this.IsOccupied(col, prevRow)
+                    || this.IsPlayerInGrid(col, prevRow)
+                    || this.IsPlaceholderIn(col, prevRow)
+                    || this.IsPlayerIn(col, prevRow))
+                {
+                    result = false;
+                    return true;
+                }
+            });
+                        
+            return result;
+        }
+        
+        private IsPlaceholderIn(col: number, row: number): boolean
+        {
+            return $.inArray(col, this._cellsOccupiedByPlaceholder.Columns) >= 0 
+                && $.inArray(row, this._cellsOccupiedByPlaceholder.Rows) >= 0;
+        }
+        
+        private IsPlayerIn(col: number, row: number): boolean
+        {
+            return $.inArray(col, this._cellsOccupiedByPlayer.Columns) >= 0 
+                && $.inArray(row, this._cellsOccupiedByPlayer.Rows) >= 0;
+        }
+        
+        private IsOccupied(col: number, row: number): boolean
+        {
+            if (!this._gridMap[col])
+            {
+                return false;
+            }
+            
+            if (this._gridMap[col][row])
+            {
+                return true;
+            }
+            
+            return false;
         }
         
         private IsCanMoveTo(widget: IWidget, isNonSeeElement: boolean, maxRows?: number): boolean
