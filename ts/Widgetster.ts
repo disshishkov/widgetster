@@ -406,11 +406,10 @@ module DS
             
             return this.SortWidgetsElementsByRowAsc(result);
         }
-        
-        private MoveWidgetUp(el: JQuery, yUnits): void
+                
+        private MoveWidgetUp(el: JQuery): void
         {
-            yUnits || (yUnits = 1);
-            
+            //NOTE: y_units was not used, GetNextRow/can_go_up_to_row returns number instead of boolean.
             var widget: IWidget = new Coords(el).Grid;
             var actualRow = widget.Row;
             var movedWidgets: JQuery[] = [];
@@ -425,9 +424,26 @@ module DS
             {
                 if ($.inArray(el, movedWidgets) === -1)                
                 {
+                    var nextRow: number = this.GetNextRow(widget);
+                    
+                    if (nextRow == 0)
+                    {
+                        return true;
+                    }
+                    
+                    var nextWidgets: JQuery[] = this.GetWidgetsBelow(widget);
+                    
+                    this.RemoveFromGridMap(widget);
+                    widget.Row = nextRow;
+                    this.AddToGridMap(widget);
+                    el.attr("data-ws-row", widget.Row).css("top", this.GetRowStyle(widget.Row));
+                    
+                    this._changedWidgetElements = this._changedWidgetElements.add(el);                    
+                    movedWidgets.push(el);
+                    
+                    nextWidgets.forEach($.proxy((w, i) => { this.MoveWidgetUp(w) }, this));
                 }
-            });
-            //TODO: MoveWidgetUp
+            });            
         }
         
         private SortWidgetsElementsByRowAsc(widgets: JQuery[]): JQuery[]
@@ -438,6 +454,80 @@ module DS
         private SortWidgetsByRowAsc(widgets: IWidget[]): IWidget[]
         {
             return widgets.sort((a, b) => { return (a.Row > b.Row) ? 1 : -1; });
+        }
+        
+        private GetNextRow(widget: IWidget): number
+        {
+            var result: number = 1;
+            var actualRow: number = widget.Row;
+            var upperRowsInColumn: number[][] = [];
+            var r: number;
+            
+            this.ForEachColumnOccupied(widget, (c) =>
+            {
+                upperRowsInColumn[c] = [];
+                r = actualRow;
+                
+                while(r--)
+                {
+                    if (this.IsEmpty(c, r)
+                        && !this.IsPlaceholderIn(c, r))
+                    {
+                        upperRowsInColumn[c].push(r);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                
+                if (!upperRowsInColumn[c].length)
+                {
+                    result = 0;
+                    return true;
+                }
+            });
+            
+            if (result == 0)
+            {
+                return 0;
+            }
+            
+            for (r = 1; r < actualRow; r++)
+            {
+                var isCommon: boolean = true;
+                
+                for (var uc = 0, ucl = upperRowsInColumn.length; uc < ucl; uc++)
+                {
+                    var ur: number[] = upperRowsInColumn[uc];
+                    if (ur && $.inArray(r, ur) === -1)
+                    {
+                        isCommon = false;
+                    }
+                }
+                
+                if (isCommon)
+                {
+                    result = r;
+                    break;
+                }
+            }            
+            
+            return result;
+        }
+        
+        private IsEmpty(col: number, row: number)
+        {
+            if (typeof this._gridMap[col] != 'undefined')
+            {
+                if (typeof this._gridMap[col][row] != 'undefined'
+                    && !this._gridMap[col][row])
+                {
+                    return true;
+                }
+                return false;
+            }
+            return true;
         }
         
         private IsPlayerInGrid(col: number, row: number): boolean
