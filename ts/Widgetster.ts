@@ -58,24 +58,32 @@ module DS
         private _resizedWidgetElements: JQuery;
         private _player: JQuery;
         private _helper: JQuery;
+        private _previewHolder: JQuery;
         
         private _minWidgetWidth: number;
         private _minWidgetHeight: number;
         private _containerWidth: number;
         private _colsCount: number;
         private _rowsCount: number;
+        private _lastColumns: number[];
+        private _lastRows: number[];
         private _basePosition: JQueryCoordinates = <JQueryCoordinates>{};
         private _resizeHandleTemplate: string;
         
         private _resizeApi: Draggable;
         private _dragApi: Draggable;
+        private _collisionApi: Collision;
         
+        private _collidersData: Collision[];
         private _fauxGrid: Coords[];
         private _gridMap: JQuery[][];
         
         private _cellsOccupiedByPlaceholder: Cell = new Cell();
         private _cellsOccupiedByPlayer: Cell = new Cell();
 
+        private _playerGrid: IWidget;
+        private _placeholderGrid: IWidget;            
+        
         /**
          * Initialize the Widgetster object.
          * 
@@ -120,7 +128,44 @@ module DS
                     this._player = data.Player;                    
                     this._helper = data.Helper;
                     
-                    //TODO: on_start_drag (insert here)
+                    this._helper.add(this._player).add(this._wrapper).addClass("dragging");
+                    this._player.addClass("player");
+                    
+                    var coords = new Coords(this._player);
+                    this._playerGrid = coords.Grid;
+                    this._placeholderGrid = $.extend({}, this._playerGrid);
+                    
+                    this._el.css("height", this._el.height() + (this._playerGrid.SizeY * this._minWidgetHeight));
+                    
+                    this._cellsOccupiedByPlayer = this.GetCellsOccupied(this._playerGrid);
+                    this._cellsOccupiedByPlaceholder = this.GetCellsOccupied(this._placeholderGrid);
+                    
+                    this._lastColumns = [];
+                    this._lastRows = [];
+                    
+                    this._collisionApi = new Collision(this._helper, this._fauxGrid, this._options.Collision);
+                    
+                    var playerRow: number = parseInt(this._player.attr('data-ws-row'));
+                    var playerCol: number = parseInt(this._player.attr('data-ws-col'));
+                    this._previewHolder = $("<" + this._player.get(0).tagName + " />",
+                    {
+                        "class": "preview-holder",
+                        "data-ws-row": playerRow,
+                        "data-ws-col": playerCol,
+                        css: 
+                        {
+                            "left": this.GetColumnStyle(playerCol),
+                            "top": this.GetRowStyle(playerRow),
+                            "width": coords.Width,
+                            "height": coords.Height
+                        }
+                    }).appendTo(this._el);
+                    
+                    if (this._options.Draggable.OnStart)
+                    {
+                        this._options.Draggable.OnStart.call(this, event, data);
+                    }
+                    
                     this._el.trigger("dragstart.widgetster");
                 }, this),
                 OnStop: $.proxy((event?: JQueryEventObject, data?: DraggableData) =>
@@ -130,7 +175,33 @@ module DS
                 }, this),
                 OnDrag: Utils.Throttle((event: JQueryEventObject, data: DraggableData) => 
                 {
-                    //TODO: on_drag (insert here)
+                    if (this._player == null)
+                    {
+                        return;
+                    }
+                    
+                    this._collidersData = this._collisionApi.GetClosestColliders(<ICoordsData>
+                    {
+                        Left: data.Position.left + this._basePosition.left,
+                        Top: data.Position.top + this._basePosition.top
+                    });
+                    
+                    //TODO: OnOverlappedColumnChange & OnOverlappedRowChange
+                    
+                    if (this._helper && this._player)
+                    {
+                        this._player.css(
+                        {
+                            "left": data.Position.left,
+                            "top": data.Position.top
+                        });
+                    }
+                    
+                    if (this._options.Draggable.OnDrag)
+                    {
+                        this._options.Draggable.OnDrag.call(this, event, data);
+                    }
+                    
                     this._el.trigger("drag.widgetster");
                 }, 60)
             });
@@ -158,6 +229,108 @@ module DS
             this._windowElement.bind("resize.widgetster", Utils.Throttle($.proxy(this.ReCalculateFauxGrid, this), 200));
             
             return this;            
+        }
+        
+        private OnOverlappedColumnChange(startCallback: Function, stopCallback: Function): void
+        {
+            //TODO: on_overlapped_column_change
+        }
+        
+        private OnOverlappedRowChange(startCallback: Function, stopCallback: Function): void
+        {
+            //TODO: on_overlapped_row_change
+        }
+        
+        private SetPlayer(column: number, row: number, isNoPlayer: boolean): void
+        {
+            if (!isNoPlayer)
+            {
+                this.RemoveFromGridMap(this._placeholderGrid);
+            }
+            
+            var cell: ICoordsData = !isNoPlayer ? this._collidersData[0].PlayerCoords.Data : <ICoordsData>{ Column: column };
+            var thisColumn: number = cell.Column;
+            var thisRow: number = row || cell.Row;
+            
+            this._playerGrid = <IWidget>
+            {
+                Column: thisColumn,
+                Row: thisRow,
+                SizeX: this._playerGrid.SizeX,
+                SizeY: this._playerGrid.SizeY
+            };
+            
+            this._cellsOccupiedByPlayer = this.GetCellsOccupied(this._playerGrid);
+            
+            var overpalledWidgets: JQuery = $([]);
+            var usedWidgets: JQuery[] = [];
+            var rowsFromBottom: number[] = this._cellsOccupiedByPlayer.Rows.slice(0);
+            rowsFromBottom.reverse();
+            
+            $.each(this._cellsOccupiedByPlayer.Columns, $.proxy((i, c) =>
+            {
+                $.each(rowsFromBottom, $.proxy((i, r) => 
+                {
+                    // if there is a widget in the player position.
+                    if (!this._gridMap[c])
+                    {
+                        return true;
+                    }
+                    
+                    var w: JQuery = this._gridMap[c][r];
+                    if (this.IsOccupied(c, r) && !this.IsPlayer(w) && $.inArray(w, usedWidgets) === -1)
+                    {
+                        overpalledWidgets = overpalledWidgets.add(w);
+                        usedWidgets.push(w);
+                    }
+                }, this));
+            }, this));
+            
+            var widgetsCanGoUp: IWidget[] = [];
+            var widgetsCanNotGoUp: IWidget[] = [];
+            
+            overpalledWidgets.each($.proxy((i, w) =>
+            {
+                var wgd: IWidget = new Coords($(w)).Grid;
+                if (this.IsCanGoUp(wgd))
+                {
+                    widgetsCanGoUp.push(wgd);
+                }
+                else
+                {
+                    widgetsCanNotGoUp.push(wgd);
+                }
+            }, this));
+            
+            this.ManageMovements(this.SortWidgetsByRowAsc(widgetsCanGoUp), thisColumn, thisRow);
+            this.ManageMovements(widgetsCanNotGoUp.sort((a, b) => { return (a.Row + a.SizeY < b.Row + b.SizeY) ? 1: -1; }), thisColumn, thisRow);
+            
+            // if there is not widgets overlapping in the new player position, update the new placeholder position.
+            if (!overpalledWidgets.length)
+            {
+                var playerRow: number = this.GetRowForGoPlayerUp(this._playerGrid);
+                if (playerRow > 0)
+                {
+                    thisRow = playerRow;
+                }
+                this.SetPlaceholder(thisColumn, thisRow);
+            }            
+        }
+        
+        private GetRowForGoPlayerUp(widget: IWidget): number
+        {
+            //TODO: can_go_player_up
+            return 0;
+        }
+        
+        private SetPlaceholder(column: number, row: number): void
+        {
+            //TODO: set_placeholder
+        }
+        
+        private ManageMovements(widgets: IWidget[], column: number, row: number): void
+        {
+            //TODO: manage_movements
         }
         
         private SetDomGridHeight(): void
@@ -319,7 +492,9 @@ module DS
         private AddToGridMap(widget: IWidget): void
         {
             this.UpdateWidgetPosition(widget, widget.Element);
-            //TODO: AddToGridMap
+            
+            //NOTO: if (grid_data.el) - need check may be it works always!
+            this.GetWidgetsBelow(widget).forEach($.proxy((w, i) => { this.MoveWidgetUp(w) }, this));
         }
         
         private RemoveFromGridMap(widget: IWidget): void

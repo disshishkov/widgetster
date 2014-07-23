@@ -36,6 +36,7 @@ module DS
          */ 
         constructor(el?: JQuery, colliders?: any, options?: ICollisionOptions)
         {
+            //NOTE: follow colliders seems it should not be any
             if (!el && !colliders && !options)
             {
                 return;
