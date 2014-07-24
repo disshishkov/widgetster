@@ -267,9 +267,9 @@ module DS
             var rowsFromBottom: number[] = this._cellsOccupiedByPlayer.Rows.slice(0);
             rowsFromBottom.reverse();
             
-            $.each(this._cellsOccupiedByPlayer.Columns, $.proxy((i, c) =>
+            $.each(this._cellsOccupiedByPlayer.Columns, $.proxy((i?, c?) =>
             {
-                $.each(rowsFromBottom, $.proxy((i, r) => 
+                $.each(rowsFromBottom, $.proxy((i?, r?) => 
                 {
                     // if there is a widget in the player position.
                     if (!this._gridMap[c])
@@ -289,7 +289,7 @@ module DS
             var widgetsCanGoUp: IWidget[] = [];
             var widgetsCanNotGoUp: IWidget[] = [];
             
-            overpalledWidgets.each($.proxy((i, w) =>
+            overpalledWidgets.each($.proxy((i?, w?) =>
             {
                 var wgd: IWidget = new Coords($(w)).Grid;
                 if (this.IsCanGoUp(wgd))
@@ -325,7 +325,61 @@ module DS
         
         private SetPlaceholder(column: number, row: number): void
         {
-            //TODO: set_placeholder
+            //TODO: set_placeholder            
+            var nextWidgets: JQuery[] = this.GetWidgetsBelow(this._placeholderGrid);
+            
+            // Prevents widgets go out of the grid.
+            var rightColumn: number = (column + this._placeholderGrid.SizeX - 1);
+            if (rightColumn > this._colsCount)
+            {
+                column = column - (rightColumn - column);
+            }
+            
+            var isMovedDown: boolean = this._placeholderGrid.Row < row;
+            var isChangedColumn: boolean = this._placeholderGrid.Column != column;
+            
+            this._placeholderGrid.Column = column;
+            this._placeholderGrid.Row = row;
+            
+            this._cellsOccupiedByPlaceholder = this.GetCellsOccupied(this._placeholderGrid);
+            
+            this._previewHolder.attr({ "data-ws-row": row, "data-ws-col": column })
+                .css({ "left": this.GetColumnStyle(column), "top": this.GetRowStyle(row) });
+            
+            if (isMovedDown || isChangedColumn)
+            {
+                nextWidgets.forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w); }, this));
+            }
+            
+            var widgetsUnderPlaceholder: JQuery = this.GetWidgetsUnderPlayer(this._cellsOccupiedByPlaceholder);
+            if (widgetsUnderPlaceholder.length)
+            {
+                widgetsUnderPlaceholder.each($.proxy((i?, w?) =>
+                {
+                    var el: JQuery = $(w);
+                    this.MoveWidgetDown(el, row + this._placeholderGrid.SizeY - new Coords(el).Grid.Row);
+                }, this));
+            }
+        }
+        
+        private GetWidgetsUnderPlayer(cells?: Cell): JQuery
+        {
+            cells || (cells = this._cellsOccupiedByPlayer || <Cell>{ Columns: [], Rows: [] });
+            var widgets: JQuery = $([]);
+            
+            $.each(cells.Columns, $.proxy((i?, c?) =>
+            {
+                $.each(cells.Rows, $.proxy((i?, r?) =>
+                {
+                    var w: JQuery = this.GetWidgetElement(c, r);
+                    if (w != null)
+                    {
+                        widgets = widgets.add(w);
+                    }
+                }, this));
+            }, this));
+            
+            return widgets;
         }
         
         private ManageMovements(widgets: IWidget[], column: number, row: number): void
@@ -494,7 +548,7 @@ module DS
             this.UpdateWidgetPosition(widget, widget.Element);
             
             //NOTO: if (grid_data.el) - need check may be it works always!
-            this.GetWidgetsBelow(widget).forEach($.proxy((w, i) => { this.MoveWidgetUp(w) }, this));
+            this.GetWidgetsBelow(widget).forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
         }
         
         private RemoveFromGridMap(widget: IWidget): void
@@ -616,9 +670,14 @@ module DS
                     this._changedWidgetElements = this._changedWidgetElements.add(el);                    
                     movedWidgets.push(el);
                     
-                    nextWidgets.forEach($.proxy((w, i) => { this.MoveWidgetUp(w) }, this));
+                    nextWidgets.forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
                 }
             });            
+        }
+        
+        private MoveWidgetDown(el: JQuery, yUnits: number): void
+        {
+            //TODO: move_widget_down
         }
         
         private SortWidgetsElementsByRowAsc(widgets: JQuery[]): JQuery[]
