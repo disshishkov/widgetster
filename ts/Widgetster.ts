@@ -324,8 +324,7 @@ module DS
         }
         
         private SetPlaceholder(column: number, row: number): void
-        {
-            //TODO: set_placeholder            
+        {         
             var nextWidgets: JQuery[] = this.GetWidgetsBelow(this._placeholderGrid);
             
             // Prevents widgets go out of the grid.
@@ -642,7 +641,6 @@ module DS
             var widget: IWidget = new Coords(el).Grid;
             var actualRow = widget.Row;
             var movedWidgets: JQuery[] = [];
-            var isCanGoUp: boolean = true;
             
             if (!this.IsCanGoUp(widget))
             {
@@ -670,14 +668,72 @@ module DS
                     this._changedWidgetElements = this._changedWidgetElements.add(el);                    
                     movedWidgets.push(el);
                     
-                    nextWidgets.forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
+                    nextWidgets.forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w); }, this));
                 }
             });            
         }
         
         private MoveWidgetDown(el: JQuery, yUnits: number): void
         {
-            //TODO: move_widget_down
+            if (yUnits <= 0 || !el)
+            {
+                return;
+            }
+            
+            var widget: IWidget = new Coords(el).Grid;
+            var actualRow: number = widget.Row;
+            var yDiff: number = yUnits;
+            var movedWidgets: JQuery[] = [];
+            
+            if ($.inArray(el, movedWidgets) === -1)
+            {
+                var nextRow: number = actualRow + yUnits;
+                var nextWidgets: JQuery[] = this.GetWidgetsBelow(widget);
+                this.RemoveFromGridMap(widget);
+                
+                nextWidgets.forEach($.proxy((w?, i?) => 
+                { 
+                    var wgd: JQuery = $(w);
+                    var wgdGrid: IWidget = new Coords(wgd).Grid;
+                    
+                    // --displacement diff---
+                    var ddDiffs: number[] = [];
+                    var ddActualRow: number = wgdGrid.Row;
+                    var ddParentMaxY: number = widget.Row + widget.SizeY;
+                    
+                    this.ForEachColumnOccupied(wgdGrid, (c) =>
+                    {
+                        var ddTempYUnits: number = 0;
+                        
+                        for(var r = ddParentMaxY; r < ddActualRow; r++)
+                        {
+                            if (this.IsEmpty(c, r))
+                            {
+                                ddTempYUnits++;
+                            }
+                        }
+                        
+                        ddDiffs.push(ddTempYUnits);
+                    });
+                    
+                    var ddYUnits = (yDiff - Math.max.apply(Math, ddDiffs));
+                    
+                    var displacementDiff: number = ddYUnits > 0 ? ddYUnits : 0;
+                    //------------------------
+                    
+                    if (displacementDiff > 0)
+                    {
+                        this.MoveWidgetDown(wgd, displacementDiff);
+                    }
+                }, this));
+                
+                widget.Row = nextRow;
+                this.UpdateWidgetPosition(widget, el);
+                el.attr("data-ws-row", widget.Row).css("top", this.GetRowStyle(widget.Row));
+                this._changedWidgetElements = this._changedWidgetElements.add(el);
+                
+                movedWidgets.push(el);
+            }
         }
         
         private SortWidgetsElementsByRowAsc(widgets: JQuery[]): JQuery[]
