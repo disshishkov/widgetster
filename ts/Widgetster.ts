@@ -319,8 +319,108 @@ module DS
         
         private GetRowForGoPlayerUp(widget: IWidget): number
         {
-            //TODO: can_go_player_up
-            return 0;
+            var isCanGoUp: boolean = true;
+            var minRow: number = Number.MAX_VALUE;
+            var bottomRow: number = widget.Row + widget.SizeY;
+            var upperRows: number[][] = [];
+            var widgetsUnderPlayer: JQuery = this.GetWidgetsUnderPlayer();
+            
+            this.ForEachColumnOccupied(widget, (c) =>
+            {
+                var gridColumn: JQuery[] = this._gridMap[c];
+                var r = bottomRow;
+                upperRows[c] = [];
+                
+                while(--r > 0)
+                {
+                    if (this.IsEmpty(c, r) 
+                        || this.IsPlayerInGrid(c, r) 
+                        || (this.GetWidgetElement(c, r) != null && gridColumn[r].is(widgetsUnderPlayer)))
+                    {
+                        upperRows[c].push(r);
+                        minRow = r < minRow ? r : minRow;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                
+                if (upperRows[c].length === 0)
+                {
+                    isCanGoUp = false;
+                    return true;
+                }
+                
+                upperRows[c].sort((a, b) => {return a - b; });
+            });
+            
+            if (!isCanGoUp)
+            {
+                return 0;
+            }
+            
+            var validRows: number[] = [];
+            var row: number = minRow - 1;
+            
+            while(++row <= bottomRow)
+            {
+                var isCommon: boolean = true;
+                $.each(upperRows, (c, r) =>
+                {
+                    if ($.isArray(r) && $.inArray(row, r) === -1)
+                    {
+                        isCommon = false;
+                    }
+                });
+                
+                if (isCommon)
+                {
+                    validRows.push(row);
+                    if (validRows.length == widget.SizeY)
+                    {
+                        break;
+                    }
+                }
+            }
+            
+            var result: number = 0;
+            if (validRows[0] != widget.Row)
+            {
+                if (widget.SizeY == 1)
+                {
+                    result = validRows[0] || 0;
+                }
+                else
+                {
+                    var isFirst: boolean = true;
+                    var previous: number = -1;
+                    var resultRows: number[] = [];
+                    for (var i = 0, max = validRows.length; i < max; i++)
+                    {
+                        if (isFirst || validRows[i] == previous + 1)
+                        {
+                            resultRows.push(i)
+                            if (resultRows.length == widget.SizeY)
+                            {
+                                break;
+                            }
+                            isFirst = false;
+                        }
+                        else
+                        {
+                            resultRows = [];
+                            isFirst = true;
+                        }
+                        
+                        previous = validRows[i];
+                    }
+                    
+                    result = (resultRows.length >= widget.SizeY) ? validRows[resultRows[0]] : 0;
+                }
+            }
+            
+            return result;
         }
         
         private SetPlaceholder(column: number, row: number): void
