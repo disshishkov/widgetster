@@ -317,13 +317,27 @@ module DS
             }            
         }
         
+        private GetRowForGoWidgetUp(widget: IWidget): number
+        {
+            return this.GetRowForGoUp(widget, true);
+        }
+        
         private GetRowForGoPlayerUp(widget: IWidget): number
+        {
+            return this.GetRowForGoUp(widget, false);
+        }
+        
+        private GetRowForGoUp(widget: IWidget, isWidget: boolean): number
         {
             var isCanGoUp: boolean = true;
             var minRow: number = Number.MAX_VALUE;
             var bottomRow: number = widget.Row + widget.SizeY;
             var upperRows: number[][] = [];
-            var widgetsUnderPlayer: JQuery = this.GetWidgetsUnderPlayer();
+            var widgetsUnderPlayer: JQuery = null;
+            if (!isWidget)
+            {
+                widgetsUnderPlayer = this.GetWidgetsUnderPlayer();
+            }
             
             this.ForEachColumnOccupied(widget, (c) =>
             {
@@ -333,17 +347,38 @@ module DS
                 
                 while(--r > 0)
                 {
-                    if (this.IsEmpty(c, r) 
-                        || this.IsPlayerInGrid(c, r) 
-                        || (this.GetWidgetElement(c, r) != null && gridColumn[r].is(widgetsUnderPlayer)))
+                    if (isWidget)
                     {
-                        upperRows[c].push(r);
+                        if (this.GetWidgetElement(c, r) != null 
+                            && !this.IsPlayerIn(c, r)
+                            && !gridColumn[r].is(widget.Element))
+                        {
+                            break;
+                        }
+                        
+                        if (!this.IsPlayerInGrid(c, r) 
+                            && !this.IsPlaceholderIn(c, r) 
+                            && !this.IsPlayerIn(c, r))
+                        {
+                            upperRows[c].push(r);
+                        }
+                        
                         minRow = r < minRow ? r : minRow;
                     }
                     else
                     {
-                        break;
-                    }
+                        if (this.IsEmpty(c, r) 
+                            || this.IsPlayerInGrid(c, r) 
+                            || (this.GetWidgetElement(c, r) != null && gridColumn[r].is(widgetsUnderPlayer)))
+                        {
+                            upperRows[c].push(r);
+                            minRow = r < minRow ? r : minRow;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }                    
                 }
                 
                 if (upperRows[c].length === 0)
@@ -483,7 +518,23 @@ module DS
         
         private ManageMovements(widgets: IWidget[], column: number, row: number): void
         {
-            //TODO: manage_movements
+            $.each(widgets, $.proxy((i?, w?: IWidget) =>
+            {
+                var rowForGoUp: number = this.GetRowForGoWidgetUp(w);
+                if (rowForGoUp != 0)
+                {
+                    // Target can go up, so move widget up.
+                    this.MoveWidgetTo(w.Element, rowForGoUp);
+                    this.SetPlaceholder(column, rowForGoUp + w.SizeY);
+                }
+                else if (this.GetRowForGoPlayerUp(this._playerGrid) == 0)
+                {
+                    // Target and player can not go up. 
+                    // We need to move widget down to a position that don't overlaps palyer.
+                    this.MoveWidgetDown(w.Element, ((row + this._playerGrid.SizeY) - w.Row));
+                    this.SetPlaceholder(column, row);
+                }
+            }, this));
         }
         
         private SetDomGridHeight(): void
@@ -733,6 +784,11 @@ module DS
             });
             
             return this.SortWidgetsElementsByRowAsc(result);
+        }
+        
+        private MoveWidgetTo(el: JQuery, row: number): void
+        {
+            //TODO: move_widget_to
         }
                 
         private MoveWidgetUp(el: JQuery): void
