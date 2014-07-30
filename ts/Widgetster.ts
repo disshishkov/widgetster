@@ -788,7 +788,36 @@ module DS
         
         private MoveWidgetTo(el: JQuery, row: number): void
         {
-            //TODO: move_widget_to
+            var widget: IWidget = new Coords(el).Grid;
+            var nextWidgets: JQuery[] = this.GetWidgetsBelow(widget);
+            
+            if (!this.IsCanMoveTo(<IWidget>
+                {
+                    Column: widget.Column,
+                    Row: row,
+                    Element: widget.Element,
+                    SizeX: widget.SizeX,
+                    SizeY: widget.SizeY,
+                }, false))
+            {
+                return;
+            }
+            
+            this.RemoveFromGridMap(widget);
+            widget.Row = row;
+            this.AddToGridMap(widget);
+            el.attr("data-ws-row", row).css("top", this.GetRowStyle(row));
+            this._changedWidgetElements = this._changedWidgetElements.add(el);
+            
+            nextWidgets.forEach($.proxy((w?, i?) => 
+            { 
+                var wgd: IWidget = new Coords(w).Grid;
+                var rowForGoUp: number = this.GetRowForGoWidgetUp(wgd);
+                if (rowForGoUp > 0 && rowForGoUp != wgd.Row)
+                {
+                    this.MoveWidgetTo(w, rowForGoUp);
+                }
+            }, this));
         }
                 
         private MoveWidgetUp(el: JQuery): void
@@ -1088,13 +1117,13 @@ module DS
             return false;
         }
         
-        private IsCanMoveTo(widget: IWidget, isNonSeeElement: boolean, maxRows?: number): boolean
+        private IsCanMoveTo(widget: IWidget, isNonSeeElement: boolean): boolean
         {
+            //NOTE: max_row is never used, but in move_widget_to max_row = JQuery element!
             var result: boolean = true;
             
             // Prevents widgets go out of the grid.
-            if (((widget.Column + widget.SizeX - 1) > this._colsCount)
-                || (maxRows && maxRows < (widget.Row + widget.SizeY - 1)))
+            if (((widget.Column + widget.SizeX - 1) > this._colsCount))
             {
                 return false;
             }
