@@ -186,7 +186,8 @@ module DS
                         Top: data.Position.top + this._basePosition.top
                     });
                     
-                    //TODO: OnOverlappedColumnChange & OnOverlappedRowChange
+                    this.OnOverlappedColumnChange(this.OnStartOverlappingColumn, this.OnStopOverlappingColumn);
+                    this.OnOverlappedRowChange(this.OnStartOverlappingRow, this.OnStopOverlappingRow);
                     
                     if (this._helper && this._player)
                     {
@@ -231,24 +232,106 @@ module DS
             return this;            
         }
         
+        private OnStartOverlappingColumn(column: number)
+        {
+            this.SetPlayer(null);
+        }
+        
+        private OnStopOverlappingColumn(column: number)
+        {
+            this.SetPlayer(null);
+            this.ForEachWidgetBelow(column, this._cellsOccupiedByPlayer.Rows[0], (w, c, r) => { this.MoveWidgetUp(w); });
+        }
+        
         private OnOverlappedColumnChange(startCallback: Function, stopCallback: Function): void
         {
-            //TODO: on_overlapped_column_change
+            if (!this._collidersData.length)
+            {
+                return;
+            }
+            
+            var columns: number[] = [];
+            var fromColumn: number = this._collidersData[0].PlayerCoords.Data.Column;
+            var max = (fromColumn || this._playerGrid.Column) + (this._playerGrid.SizeX - 1);
+            for (var c = fromColumn; c <= max; c++)
+            {
+                columns.push(c);
+            }
+            
+            for (var i = 0, nCols = columns.length; i < nCols; i++)
+            {
+                if ($.inArray(columns[i], this._lastColumns) === -1)
+                {
+                    (startCallback || $.noop).call(this, columns[i]);
+                }
+            }
+            
+            for (var i = 0, nCols = this._lastColumns.length; i < nCols; i++)
+            {
+                if ($.inArray(this._lastColumns[i], columns) === -1)
+                {
+                    (stopCallback || $.noop).call(this, this._lastColumns[i]);
+                }
+            }
+            
+            this._lastColumns = columns;
+        }
+        
+        private OnStartOverlappingRow(row: number)
+        {
+            this.SetPlayer(row);
+        }
+        
+        private OnStopOverlappingRow(row: number)
+        {
+            this.SetPlayer(row);
+            var columns: number[] = this._cellsOccupiedByPlayer.Columns;
+            
+            for (var c = 0, cl = columns.length; c < cl; c++)
+            {
+                this.ForEachWidgetBelow(columns[c], row, (w, c, r) => { this.MoveWidgetUp(w); });
+            }
         }
         
         private OnOverlappedRowChange(startCallback: Function, stopCallback: Function): void
         {
-            //TODO: on_overlapped_row_change
-        }
-        
-        private SetPlayer(column: number, row: number, isNoPlayer: boolean): void
-        {
-            if (!isNoPlayer)
+            if (!this._collidersData.length)
             {
-                this.RemoveFromGridMap(this._placeholderGrid);
+                return;
             }
             
-            var cell: ICoordsData = !isNoPlayer ? this._collidersData[0].PlayerCoords.Data : <ICoordsData>{ Column: column };
+            var rows: number[] = [];
+            var fromRow: number = this._collidersData[0].PlayerCoords.Data.Row;
+            var max = (fromRow || this._playerGrid.Row) + (this._playerGrid.SizeY - 1);
+            for (var r = fromRow; r <= max; r++)
+            {
+                rows.push(r);
+            }
+            
+            for (var i = 0, nRows = rows.length; i < nRows; i++)
+            {
+                if ($.inArray(rows[i], this._lastRows) === -1)
+                {
+                    (startCallback || $.noop).call(this, rows[i]);
+                }
+            }
+            
+            for (var i = 0, nRows = this._lastRows.length; i < nRows; i++)
+            {
+                if ($.inArray(this._lastRows[i], rows) === -1)
+                {
+                    (stopCallback || $.noop).call(this, this._lastRows[i]);
+                }
+            }
+            
+            this._lastRows = rows;
+        }
+        
+        private SetPlayer(row: number): void
+        {
+            this.RemoveFromGridMap(this._placeholderGrid);
+            
+            var cell: ICoordsData = this._collidersData[0].PlayerCoords.Data;
             var thisColumn: number = cell.Column;
             var thisRow: number = row || cell.Row;
             
