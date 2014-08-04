@@ -55,6 +55,16 @@ module DS
             
             el.data("WidgetsterCoords", this);
         }
+        
+        public static UpdateGrid(el: JQuery, widget: IWidget): void
+        {
+            if (el.data("WidgetsterCoords"))
+            {
+                var coords: Coords = el.data("WidgetsterCoords");
+                coords.Grid = $.extend({}, coords.Grid, widget);
+                el.data("WidgetsterCoords", coords);
+            }
+        }
 
         /**
          * Updates data.

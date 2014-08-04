@@ -170,7 +170,56 @@ module DS
                 }, this),
                 OnStop: $.proxy((event?: JQueryEventObject, data?: DraggableData) =>
                 {
-                    //TODO: on_stop_drag (insert here)
+                    this._helper.add(this._player).add(this._wrapper).removeClass("dragging");
+                    
+                    data.Position.left += this._basePosition.left;
+                    data.Position.top += this._basePosition.top;
+                    
+                    this._collidersData = this._collisionApi.GetClosestColliders(<ICoordsData>
+                    {
+                        Left: data.Position.left,
+                        Top: data.Position.top
+                    });
+                    
+                    this.OnOverlappedColumnChange(this.OnStartOverlappingColumn, this.OnStopOverlappingColumn);
+                    this.OnOverlappedRowChange(this.OnStartOverlappingRow, this.OnStopOverlappingRow);
+                    
+                    this._player.addClass("player-revert").removeClass("player")
+                        .attr(
+                        {
+                            "data-ws-col": this._placeholderGrid.Column,
+                            "data-ws-row": this._placeholderGrid.Row
+                        })
+                        .css(
+                        {
+                            "left": this.GetColumnStyle(this._placeholderGrid.Column),
+                            "top": this.GetRowStyle(this._placeholderGrid.Row)
+                        });
+                    
+                    
+                    this._changedWidgetElements = this._changedWidgetElements.add(this._player);
+                    
+                    this._cellsOccupiedByPlayer = this.GetCellsOccupied(this._placeholderGrid);
+                    this.RemoveFromGridMap(this._placeholderGrid);
+                    this.AddToGridMap(this._placeholderGrid);//NOTE: this._player is second parameter
+                    
+                    //NOTE: not sure that it's requred because we set null for this._player below.
+                    Coords.UpdateGrid(this._player, <IWidget>{ Column: this._placeholderGrid.Column, Row: this._placeholderGrid.Row });
+                    
+                    if (this._options.Draggable.OnStop)
+                    {
+                        this._options.Draggable.OnStop.call(this, event, data);
+                    }
+                    
+                    this._previewHolder.remove();
+                    this._player = null;
+                    this._helper = null;
+                    this._placeholderGrid = <IWidget>{};
+                    this._playerGrid = <IWidget>{};
+                    this._cellsOccupiedByPlaceholder = <Cell>{};
+                    this._cellsOccupiedByPlayer = <Cell>{};
+                    
+                    this.SetDomGridHeight();                    
                     this._el.trigger("dragstop.widgetster");
                 }, this),
                 OnDrag: Utils.Throttle((event: JQueryEventObject, data: DraggableData) => 
@@ -220,10 +269,7 @@ module DS
                     IsMoveElement: false,
                     OnDrag: Utils.Throttle($.proxy(this.OnResize, this), 60),
                     OnStart: $.proxy((event?, data?) => { this.OnStartResize(event, data); }, this),
-                    OnStop: $.proxy((event?, data?) =>
-                        {
-                            Utils.Delay($.proxy(() => { this.OnStopResize(event, data); }, this), 120);
-                        }, this)
+                    OnStop: $.proxy((event?, data?) => { Utils.Delay($.proxy(() => { this.OnStopResize(event, data); }, this), 120); }, this)
                 });
             }
             
