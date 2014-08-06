@@ -12,7 +12,7 @@ module DS
     {
         private _el: JQuery = null;
         
-        public Data: ICoordsData = null;        
+        public Data: ICoordsData = <ICoordsData>{};        
         public Grid: IWidget;
         
         public X1: number;

@@ -7,5 +7,8 @@ module DS
         HandleAppendTo: string;
         HandleClass: string;
         MaxSize: number[];
+        OnResize: Function;
+        OnStart: Function;
+        OnStop: Function;        
     }
 }
