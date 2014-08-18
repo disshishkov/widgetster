@@ -301,9 +301,156 @@ module DS
         * @param {Function} [callback] Function executed when the widget is removed.
         * @return {JQuery} Returns widget.
         */
-        public ResizeWidget(widget: JQuery, sizeX: number, sizeY: number, isReposition: boolean, row?: number, callback?: Function): JQuery
+        public ResizeWidget(widget: JQuery, sizeX: number, sizeY: number, isReposition?: boolean, row?: number, callback?: Function): JQuery
         {
-            //TODO: resize_widget
+            if (row != null)
+            {
+                widget.attr("data-ws-row", row);
+            }
+            
+            var widgetCoords: Coords = new Coords(widget);
+            var widgetData: IWidget = widgetCoords.Grid;
+            sizeX || (sizeX = widgetData.SizeX);
+            sizeY || (sizeY = widgetData.SizeY);
+            isReposition || (isReposition = true);
+            
+            if (sizeX > this._colsCount)
+            {
+                sizeX = this._colsCount;
+            }
+            
+            var oldSizeX: number = widgetData.SizeX;
+            var oldSizeY: number = widgetData.SizeY;
+            var oldColumn: number = widgetData.Column;
+            var newColumn: number = oldColumn;
+            
+            if (isReposition && oldColumn + sizeX - 1 > this._colsCount)
+            {
+                newColumn = Math.max(1, this._colsCount + 1 - sizeX);
+            }
+            
+            if (sizeY > oldSizeY)
+            {
+                this.AddFauxRows(Math.max(sizeY - oldSizeY, 0));
+            }
+            
+            var newWidgetData: IWidget = <IWidget>
+            {
+                Column: newColumn,
+                Row: row || widgetData.Row,
+                SizeX: sizeX,
+                SizeY: sizeY
+            };
+            
+            var oldCellsOccupied: Cell = this.GetCellsOccupied(widgetData);
+            var newCellsOccupied: Cell = this.GetCellsOccupied(newWidgetData);
+            
+            var emptyColumns: number[] = [];
+            $.each(oldCellsOccupied.Columns, (i, c) =>
+            {
+                if ($.inArray(c, newCellsOccupied.Columns) === -1)
+                {
+                    emptyColumns.push(c);
+                }
+            });
+            
+            var occupiedColumns: number[] = [];
+            $.each(newCellsOccupied.Columns, (i, c) =>
+            {
+                if ($.inArray(c, oldCellsOccupied.Columns) === -1)
+                {
+                    occupiedColumns.push(c);
+                }
+            });
+            
+            var emptyRows: number[] = [];
+            $.each(oldCellsOccupied.Rows, (i, r) =>
+            {
+                if ($.inArray(r, newCellsOccupied.Rows) === -1)
+                {
+                    emptyRows.push(r);
+                }
+            });
+            
+            var occupiedRows: number[] = [];
+            $.each(newCellsOccupied.Rows, (i, r) =>
+            {
+                if ($.inArray(r, oldCellsOccupied.Rows) === -1)
+                {
+                    occupiedRows.push(r);
+                }
+            });
+            
+            this.RemoveFromGridMap(widgetData);
+            
+            if (occupiedColumns.length)
+            {
+                this.MoveWidgetsToCell(<IWidget>
+                {
+                    Column: newWidgetData.Column,
+                    Row: newWidgetData.Row,
+                    SizeX: newWidgetData.SizeX,
+                    SizeY: Math.min(oldSizeY, newWidgetData.SizeY)
+                }, widget, false);
+            }
+            
+            if (occupiedRows.length)
+            {
+                this.MoveWidgetsToCell(newWidgetData, widget, false);
+            }
+            
+            widgetData.Column = newWidgetData.Column;
+            widgetData.Row = newWidgetData.Row;
+            widgetData.SizeX = newWidgetData.SizeX;
+            widgetData.SizeY = newWidgetData.SizeY;
+            
+            this.AddToGridMap(widgetData);
+            widget.removeClass("player-revert");
+            
+            widgetCoords.Update(<ICoordsData>
+            {
+                Width: (newWidgetData.SizeX * this._options.BaseDimensions[0] + ((newWidgetData.SizeX - 1) * this._options.Margins[0]) * 2),
+                Height: (newWidgetData.SizeY * this._options.BaseDimensions[1] + ((newWidgetData.SizeY - 1) * this._options.Margins[1]) * 2)
+            });
+            
+            widget.attr(
+            {
+                "data-ws-col": newWidgetData.Column,
+                "data-ws-row": newWidgetData.Row,
+                "data-ws-sizex": newWidgetData.SizeX,
+                "data-ws-sizey": newWidgetData.SizeY
+            }).css(
+            {
+                "left": this.GetColumnStyle(newWidgetData.Column),
+                "top": this.GetRowStyle(widgetData.Row),
+                "width": this.GetXStyle(widgetData.SizeX),
+                "height": this.GetYStyle(widgetData.SizeY)
+            });
+            
+            if (emptyColumns.length)
+            {
+                this.MoveWidgetsToCell(<IWidget>
+                {
+                    Column: emptyColumns[0],
+                    Row: newWidgetData.Row,
+                    SizeX: emptyColumns.length,
+                    SizeY: Math.min(oldSizeY, newWidgetData.SizeY)
+                }, widget, true);
+            }
+            
+            if (emptyRows.length)
+            {
+                this.MoveWidgetsToCell(newWidgetData, widget, true);
+            }
+            
+            this.MoveWidgetUp(widget);
+            
+            this.SetDomGridHeight();
+            
+            if (callback)
+            {
+                callback.call(this, sizeX, sizeY);
+            }
             
             return widget;
         }
@@ -786,6 +933,22 @@ module DS
             }
         }
         
+        private AddFauxRows(rows: number): void
+        {
+            var actualRows: number = this._rowsCount;
+            var maxRows: number = actualRows + (rows || 1);
+            
+            for (var r = maxRows; r > actualRows; r--)
+            {
+                for (var c = this._colsCount; c >= 1; c--)
+                {
+                    this.AddFauxCell(r, c);
+                }
+            }
+            
+            this._rowsCount = maxRows;
+        }
+        
         private AddFauxCell(row: number, col: number): void
         {
             if (!$.isArray(this._gridMap[col]))
@@ -856,7 +1019,7 @@ module DS
         {
             this.UpdateWidgetPosition(widget, widget.Element);
             
-            //NOTO: if (grid_data.el) - need check may be it works always!
+            //NOTE: if (grid_data.el) - need check may be it works always!
             this.GetWidgetsBelow(widget).forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
         }
         
@@ -1078,6 +1241,38 @@ module DS
                 
                 movedWidgets.push(el);
             }
+        }
+        
+        private MoveWidgetsToCell(widget: IWidget, exclude: JQuery, isToUp: boolean): void
+        {
+            var nextWidgets: JQuery[] = this.GetWidgetsBelow(<IWidget>
+            {
+                Column: widget.Column,
+                Row: (isToUp ? widget.Row : (widget.Row - widget.SizeY)),
+                SizeX: widget.SizeX,
+                SizeY: widget.SizeY
+            });
+            
+            nextWidgets.forEach($.proxy((w?, i?) => 
+            { 
+                if (!w.is(exclude))
+                {
+                    if (isToUp)
+                    {
+                        this.MoveWidgetUp(w);
+                    }
+                    else
+                    {
+                        var wgd: IWidget = new Coords(w).Grid;
+                        if (wgd.Row <= (widget.Row + widget.SizeY - 1))
+                        {
+                            this.MoveWidgetDown(w, ((widget.Row + widget.SizeY) - wgd.Row)); 
+                        }
+                    }
+                }
+            }, this));
+            
+            this.SetDomGridHeight();
         }
         
         private SortWidgetsElementsByRowAsc(widgets: JQuery[]): JQuery[]

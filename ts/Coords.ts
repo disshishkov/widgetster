@@ -89,6 +89,8 @@ module DS
             {
                 this.Set(true, false);
             }
+            
+            this._el.data("WidgetsterCoords", this);
         }
 
         /**
