@@ -211,7 +211,6 @@ module DS
                     this.UpdateWidgetPosition(this._placeholderGrid, this._player);            
                     this.GetWidgetsBelow(this._placeholderGrid).forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
 
-                    //NOTE: not sure that it's requred because we set null for this._player below.
                     Coords.UpdateGrid(this._player, <IWidget>{ Column: this._placeholderGrid.Column, Row: this._placeholderGrid.Row });
                     
                     if (this._options.Draggable.OnStop)
@@ -1139,7 +1138,6 @@ module DS
                 
         private MoveWidgetUp(el: JQuery): void
         {
-            //NOTE: y_units was not used, GetNextRow/can_go_up_to_row returns number instead of boolean.
             var widget: IWidget = new Coords(el).Grid;
             var actualRow = widget.Row;
             var movedWidgets: JQuery[] = [];
@@ -1468,7 +1466,6 @@ module DS
         
         private IsCanMoveTo(widget: IWidget, isNonSeeElement: boolean): boolean
         {
-            //NOTE: max_row is never used, but in move_widget_to max_row = JQuery element!
             var result: boolean = true;
             
             // Prevents widgets go out of the grid.

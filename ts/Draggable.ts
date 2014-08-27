@@ -70,7 +70,7 @@ module DS
 
             this._container.on(
                 "selectstart.widgetster-draggable",
-                $.proxy((event?) => { return(this._isDisabled || this.IsIgnoreDrag(event)); }, this));
+                $.proxy((event?) => { return (this._isDisabled || this.IsIgnoreDrag(event)); }, this));
 
             this._container.on(
                 this._pointerEvents.Start,
@@ -84,12 +84,12 @@ module DS
                     this._isDragging = false;
                     if (this._isDisabled)
                     {
-                        return;
+                        return true;
                     }
                     this._bodyElement.off(this._pointerEvents.Move);
                     if (this._isDragStart)
                     {
-                        this.OnDragStop(event);
+                        return this.OnDragStop(event);
                     }
                 }, this));
 
@@ -307,7 +307,6 @@ module DS
             }
         }
 
-        //NOTE: think about return boolean
         private DragHandler(event: JQueryEventObject): boolean
         {
             if (this._isDisabled || (event.which != 1 && !this._isTouch) || this.IsIgnoreDrag(event))
