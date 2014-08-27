@@ -102,7 +102,8 @@ module DS
             while(count--)
             {
                 //NOTE: decide use or not _isInContext
-                var collider: JQuery = /*this._isInContext ? */$(this._colliders[count])/* : this._colliders[count]*/;
+                //NOTE: think how to remove any.
+                var collider: JQuery = this._isInContext ? $(this._colliders[count]) : $((<any>this._colliders[count]).Data);
                 var colliderCoords = new Coords(collider);
 
                 if (!this.IsOverlaped(playerCoords, colliderCoords))

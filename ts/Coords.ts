@@ -90,7 +90,10 @@ module DS
                 this.Set(true, false);
             }
             
-            this._el.data("WidgetsterCoords", this);
+            if (this._el)
+            {
+                this._el.data("WidgetsterCoords", this);
+            }
         }
 
         /**
@@ -113,6 +116,7 @@ module DS
             this.CenterY = coords.CenterY;
             this.Width = coords.Width;
             this.Height = coords.Height;
+            this.Grid = coords.Grid;
         }
 
         /**
@@ -125,18 +129,16 @@ module DS
          */ 
         private Set(isUpdate: boolean, isNotUpdateOffsets: boolean): void
         {
-            var el: JQuery = this._el;
-
-            if (el)
+            if (this._el)
             {
-                var jqCoords: JQueryCoordinates = el.offset();
+                var jqCoords: JQueryCoordinates = this._el.offset();
 
                 if (!isUpdate)
                 {
                     this.Data.Top = jqCoords.top;
                     this.Data.Left = jqCoords.left;
-                    this.Data.Width = el.width();
-                    this.Data.Height = el.height();
+                    this.Data.Width = this._el.width();
+                    this.Data.Height = this._el.height();
                 }
 
                 if (isUpdate && !isNotUpdateOffsets)

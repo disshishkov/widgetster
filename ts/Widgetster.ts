@@ -985,8 +985,8 @@ module DS
                     Element: el
                 };
             
-            if (this._options.IsAvoidOverlap && !this.IsCanMoveTo(widget, true))
-            {
+            //if (this._options.IsAvoidOverlap && !this.IsCanMoveTo(widget, true))
+            //{
                 $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
                 el.attr(
                 {
@@ -1001,7 +1001,7 @@ module DS
                     "width": this.GetXStyle(widget.SizeX),
                     "height": this.GetYStyle(widget.SizeY)
                 });
-            }
+            //}
             
             // attach Coords object to player.
             new Coords(el, widget);

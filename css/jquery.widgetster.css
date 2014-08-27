@@ -7,6 +7,11 @@
     z-index: 2;
     position: absolute;
     list-style-type: none;
+    background: #DDDDDD;
+}
+.widgetster .player
+{
+    background: #BBBBBB;
 }
 .widgetster .preview-holder
 {
