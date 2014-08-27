@@ -12,7 +12,6 @@ module DS
         MaxCols: number;
         MinRows: number;
         MaxSizeX: number;
-        IsAvoidOverlap: boolean;
         SerializeParams: Function;
         Collision: ICollisionOptions;
         Draggable: IDraggableOptions;

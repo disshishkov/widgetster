@@ -37,7 +37,6 @@ module DS
             MaxCols: null,
             MinRows: 15,
             MaxSizeX: null,
-            IsAvoidOverlap: true,
             SerializeParams: (widgetElement: JQuery, widget: IWidget) => { return widget; },
             Collision: <ICollisionOptions>{},
             Draggable: <IDraggableOptions>{},
@@ -209,8 +208,9 @@ module DS
                     
                     this._cellsOccupiedByPlayer = this.GetCellsOccupied(this._placeholderGrid);
                     this.RemoveFromGridMap(this._placeholderGrid);
-                    this.AddToGridMap(this._placeholderGrid);//NOTE: this._player is second parameter
-                    
+                    this.UpdateWidgetPosition(this._placeholderGrid, this._player);            
+                    this.GetWidgetsBelow(this._placeholderGrid).forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
+
                     //NOTE: not sure that it's requred because we set null for this._player below.
                     Coords.UpdateGrid(this._player, <IWidget>{ Column: this._placeholderGrid.Column, Row: this._placeholderGrid.Row });
                     
@@ -474,7 +474,7 @@ module DS
             }
             
             var columns: number[] = [];
-            var fromColumn: number = this._collidersData[0].PlayerCoords.Data.Column;
+            var fromColumn: number = this._collidersData[0].ColliderCoords.Data.Column;
             var max = (fromColumn || this._playerGrid.Column) + (this._playerGrid.SizeX - 1);
             for (var c = fromColumn; c <= max; c++)
             {
@@ -524,7 +524,7 @@ module DS
             }
             
             var rows: number[] = [];
-            var fromRow: number = this._collidersData[0].PlayerCoords.Data.Row;
+            var fromRow: number = this._collidersData[0].ColliderCoords.Data.Row;
             var max = (fromRow || this._playerGrid.Row) + (this._playerGrid.SizeY - 1);
             for (var r = fromRow; r <= max; r++)
             {
@@ -554,7 +554,7 @@ module DS
         {
             this.RemoveFromGridMap(this._placeholderGrid);
             
-            var cell: ICoordsData = this._collidersData[0].PlayerCoords.Data;
+            var cell: ICoordsData = this._collidersData[0].ColliderCoords.Data;
             var thisColumn: number = cell.Column;
             var thisRow: number = row || cell.Row;
             
@@ -985,23 +985,20 @@ module DS
                     Element: el
                 };
             
-            //if (this._options.IsAvoidOverlap && !this.IsCanMoveTo(widget, true))
-            //{
-                $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
-                el.attr(
-                {
-                    "data-ws-col": widget.Column,
-                    "data-ws-row": widget.Row,
-                    "data-ws-sizex": widget.SizeX,
-                    "data-ws-sizey": widget.SizeY
-                }).css(
-                {
-                    "left": this.GetColumnStyle(widget.Column),
-                    "top": this.GetRowStyle(widget.Row),
-                    "width": this.GetXStyle(widget.SizeX),
-                    "height": this.GetYStyle(widget.SizeY)
-                });
-            //}
+            $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
+            el.attr(
+            {
+                "data-ws-col": widget.Column,
+                "data-ws-row": widget.Row,
+                "data-ws-sizex": widget.SizeX,
+                "data-ws-sizey": widget.SizeY
+            }).css(
+            {
+                "left": this.GetColumnStyle(widget.Column),
+                "top": this.GetRowStyle(widget.Row),
+                "width": this.GetXStyle(widget.SizeX),
+                "height": this.GetYStyle(widget.SizeY)
+            });
             
             // attach Coords object to player.
             new Coords(el, widget);
@@ -1017,9 +1014,7 @@ module DS
         
         private AddToGridMap(widget: IWidget): void
         {
-            this.UpdateWidgetPosition(widget, widget.Element);
-            
-            //NOTE: if (grid_data.el) - need check may be it works always!
+            this.UpdateWidgetPosition(widget, widget.Element);            
             this.GetWidgetsBelow(widget).forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w) }, this));
         }
         

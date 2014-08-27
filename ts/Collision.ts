@@ -101,7 +101,6 @@ module DS
 
             while(count--)
             {
-                //NOTE: decide use or not _isInContext
                 //NOTE: think how to remove any.
                 var collider: JQuery = this._isInContext ? $(this._colliders[count]) : $((<any>this._colliders[count]).Data);
                 var colliderCoords = new Coords(collider);
