@@ -286,6 +286,75 @@ module DS
         }
         
         /**
+        * Add a new widget to the grid.
+        *
+        * @method AddWidget
+        * @param {JQuery} [widget] The jQuery wrapped HTMLElement representing the widget.
+        * @param {Number} [sizeX] The number of columns that will occupy the widget.
+        * @param {Number} [sizeY] The number of rows that will occupy the widget.
+        * @param {Number} [column] The column the widget should start in.
+        * @param {Number} [row] The row the widget should start in.
+        * @param {Number[]} [maxSize] Maximun size (in units) for width and height.
+        * @param {Function} [callback] Function executed when the widget is removed.
+        * @return {JQuery} Returns widget.
+        */
+        public AddWidget(widget: JQuery, sizeX?: number, sizeY?: number, column?: number, row?: number, maxSize?: number[], callback?: Function): JQuery
+        {
+            sizeX || (sizeX = 1);
+            sizeY || (sizeY = 1);
+            
+            var position: IWidget = null;
+            
+            if (!column || !row)
+            {
+                position = this.GetNextPosition(sizeX, sizeY);
+            }
+            else
+            {
+                position = <IWidget>
+                { 
+                    Column: column, 
+                    Row: row,
+                    SizeX: sizeX,
+                    SizeY: sizeY
+                };
+                this.MoveWidgetsToCell(position, null, false);
+            }
+            
+            var addedWidget: JQuery = widget.attr(
+            {
+                "data-ws-col": position.Column,
+                "data-ws-row": position.Row,
+                "data-ws-sizex": position.SizeX,
+                "data-ws-sizey": position.SizeY
+            }).css(
+            {
+                "left": this.GetColumnStyle(position.Column),
+                "top": this.GetRowStyle(position.Row),
+                "width": this.GetXStyle(position.SizeX),
+                "height": this.GetYStyle(position.SizeY)
+            }).addClass("ws-w").appendTo(this._el).hide();
+            
+            this._widgetElements = this._widgetElements.add(addedWidget);
+            this.RegisterWidget(addedWidget);
+            this.AddFauxRows(position.SizeY);
+            
+            if (maxSize)
+            {
+                Coords.UpdateGrid(addedWidget, <IWidget>{ MaxSizeX: maxSize[0], MaxSizeY: maxSize[1] });
+            }
+            
+            this.SetDomGridHeight();
+            
+            if (callback)
+            {
+                callback.call(this, addedWidget);
+            }
+            
+            return addedWidget.fadeIn();
+        }
+        
+        /**
         * Change the size of a widget. Width is limited to the current grid width.
         *
         * @method ResizeWidget
