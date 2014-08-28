@@ -311,7 +311,7 @@ module DS
             var widgetData: IWidget = widgetCoords.Grid;
             sizeX || (sizeX = widgetData.SizeX);
             sizeY || (sizeY = widgetData.SizeY);
-            isReposition || (isReposition = true);
+            (isReposition != null) || (isReposition = true);
             
             if (sizeX > this._colsCount)
             {
@@ -1556,7 +1556,7 @@ module DS
             if (sizeX != this._resizeLastData.SizeX
                 || sizeY != this._resizeLastData.SizeY)
             {
-                this.ResizeWidget(this._resizedWidgetElements, sizeX, sizeY, false);
+                this._resizedWidgetElements = this.ResizeWidget(this._resizedWidgetElements, sizeX, sizeY, false);
                 
                 this._resizePreviewHolder.css(
                     {
@@ -1582,8 +1582,15 @@ module DS
         
         private OnStopResize(event: JQueryEventObject, data: DraggableData): void
         {
-            this._resizedWidgetElements.removeClass("resizing").css({ "width": "", "height": "" });            
-            Utils.Delay($.proxy(() => { this._resizePreviewHolder.remove().css({ "min-width": "", "min-height": "" }); }, this), 300);
+            this._resizedWidgetElements.removeClass("resizing").css(
+            { 
+                "min-width": "", 
+                "min-height": "",
+                "width": this._resizePreviewHolder.css("width"), 
+                "height": this._resizePreviewHolder.css("height")
+            });
+            
+            Utils.Delay($.proxy(() => { this._resizePreviewHolder.remove().css({ "min-width": "", "min-height": "", "width": "", "height": "" }); }, this), 300);
             
             if (this._options.Resize.OnStop)
             {
