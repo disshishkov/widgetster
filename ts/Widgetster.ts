@@ -286,6 +286,49 @@ module DS
         }
         
         /**
+        * Enables dragging.
+        *
+        * @method EnableDragging
+        */
+        public EnableDragging(): void
+        {
+            this._dragApi.Enable();
+        }
+        
+        /**
+        * Disables dragging.
+        *
+        * @method DisableDragging
+        */
+        public DisableDragging(): void
+        {
+            this._wrapper.find(".player-revert").removeClass("player-revert");
+            this._dragApi.Disable();
+        }
+        
+        /**
+        * Enables resizing.
+        *
+        * @method EnableResize
+        */
+        public EnableResize(): void
+        {
+            this._el.removeClass("ws-resize-disabled");
+            this._resizeApi.Enable();
+        }
+        
+        /**
+        * Disables resizing.
+        *
+        * @method DisableResize
+        */
+        public DisableResize(): void
+        {
+            this._el.addClass("ws-resize-disabled");
+            this._resizeApi.Disable();
+        }
+        
+        /**
         * Add a new widget to the grid.
         *
         * @method AddWidget
