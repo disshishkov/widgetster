@@ -295,7 +295,7 @@ module DS
         * @param {Number} [column] The column the widget should start in.
         * @param {Number} [row] The row the widget should start in.
         * @param {Number[]} [maxSize] Maximun size (in units) for width and height.
-        * @param {Function} [callback] Function executed when the widget is removed.
+        * @param {Function} [callback] Function executed when the widget is added.
         * @return {JQuery} Returns widget.
         */
         public AddWidget(widget: JQuery, sizeX?: number, sizeY?: number, column?: number, row?: number, maxSize?: number[], callback?: Function): JQuery
@@ -355,6 +355,56 @@ module DS
         }
         
         /**
+        * Remove a widget from the grid.
+        *
+        * @method RemoveWidget
+        * @param {JQuery} [widget] The jQuery wrapped HTMLElement representing the widget.
+        * @param {Boolean} [isSilent] If true, widgets below the removed one will not move up. 
+        * @param {Function} [callback] Function executed when the widget is removed.
+        */
+        public RemoveWidget(widget: JQuery, isSilent: boolean, callback?: Function): void
+        {
+            var wgd: IWidget = new Coords(widget).Grid;
+            this._cellsOccupiedByPlaceholder = new Cell();
+            this._widgetElements = this._widgetElements.not(widget);
+            
+            var nextWidgets: JQuery[] = null;
+            if (!isSilent)
+            {
+                nextWidgets = this.GetWidgetsBelow(wgd);
+            }
+            
+            this.RemoveFromGridMap(wgd);
+            
+            widget.fadeOut($.proxy(() => 
+            {
+                widget.remove();
+                if (nextWidgets != null)
+                {
+                    nextWidgets.forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w); }, this));
+                }
+                
+                this.SetDomGridHeight();
+                
+                if (callback)
+                {
+                    callback.call(this, widget);
+                }
+            }, this));
+        }
+        
+        /**
+        * Remove all widgets from the grid.
+        *
+        * @method RemoveAllWidgets
+        * @param {Function} [callback] Function executed for each widget removed.
+        */
+        public RemoveAllWidgets(callback?: Function): void
+        {
+            this._widgetElements.each($.proxy((i?, w?) => { this.RemoveWidget(w, true, callback) }, this));
+        }
+        
+        /**
         * Change the size of a widget. Width is limited to the current grid width.
         *
         * @method ResizeWidget
@@ -366,7 +416,7 @@ module DS
         *  By default <code>sizeX</code> is limited to the space available from
         *  the column where the widget begins, until the last column to the right.
         * @param {Number} [row] The row.
-        * @param {Function} [callback] Function executed when the widget is removed.
+        * @param {Function} [callback] Function executed when the widget is resized.
         * @return {JQuery} Returns widget.
         */
         public ResizeWidget(widget: JQuery, sizeX: number, sizeY: number, isReposition?: boolean, row?: number, callback?: Function): JQuery
