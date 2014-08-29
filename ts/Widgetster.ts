@@ -1,3 +1,4 @@
+/// <reference path="IDimensions.ts" />
 /// <reference path="IWidgetsterOptions.ts" />
 /// <reference path="ICoordsData.ts" />
 /// <reference path="ICollisionOptions.ts" />
@@ -617,6 +618,58 @@ module DS
         }
         
         /**
+         * Resizes widget dimensions, such as Margins and BaseDimensions
+         * 
+         * @method ResizeWidgetDimensionss
+         * @param {IDimensions} [dimensions] The new dimensions.
+         * @param {Boolean} [isIgnoreEquals] Set to true to apply changing dimensiosn even
+         * old and new dimensions are equals.s
+         */ 
+        public ResizeWidgetDimensions(dimensions: IDimensions, isIgnoreEquals: boolean): void
+        {
+            var isMarginsChanged: boolean = false;
+            var isDimensionsChanged: boolean = false;            
+            
+            if (dimensions.Margins)
+            {
+                if (!this.IsPairArraysEqual(this._options.Margins, dimensions.Margins))
+                {
+                    this._options.Margins = dimensions.Margins;
+                    isMarginsChanged = true;
+                }
+            }
+            
+            if (dimensions.BaseDimensions)
+            {
+                if (!this.IsPairArraysEqual(this._options.BaseDimensions, dimensions.BaseDimensions))
+                {
+                    this._options.BaseDimensions = dimensions.BaseDimensions;
+                    isDimensionsChanged = true;
+                }
+            }
+            
+            if (!isDimensionsChanged && !isMarginsChanged && !isIgnoreEquals)
+            {
+                return;
+            }
+            
+            this._minWidgetWidth = (this._options.Margins[0] * 2) + this._options.BaseDimensions[0];
+            this._minWidgetHeight = (this._options.Margins[1] * 2) + this._options.BaseDimensions[1];
+            
+            var serializedGrid: any[] = this.GetSerializedWidgets();
+            this._widgetElements.each($.proxy((i?, w?) =>
+            {
+                var widget: JQuery = $(w);
+                var data: any = serializedGrid[i];
+                this.ResizeWidget(widget, data.SizeX, data.SizeY);
+            }, this));
+            
+            this.GenerateGrid();
+            this.GetWidgetsFromDom();
+            this.SetDomGridHeight();
+        }
+        
+        /**
         * Returns a serialized array of the widgets in the grid.
         *
         * @method GetSerializedWidgets
@@ -625,7 +678,7 @@ module DS
         * @return {Array} Returns an Array of Objects with the data specified in
         *  the SerializeParams option.
         */
-        public GetSerializedWidgets(widgets: JQuery): any[]
+        public GetSerializedWidgets(widgets?: JQuery): any[]
         {
             widgets || (widgets = this._widgetElements);
             var result: any[] = [];
@@ -646,9 +699,14 @@ module DS
         * @return {Array} Returns an Array of Objects with the data specified in
         *  the SerializeParams option.
         */
-        public GetSerializedChangedWidgets(widgets: JQuery): any[]
+        public GetSerializedChangedWidgets(): any[]
         {
             return this.GetSerializedWidgets(this._changedWidgetElements);
+        }
+        
+        private IsPairArraysEqual(a: number[], b: number[]): boolean
+        {
+            return (a[0] == b[0] && a[1] == b[1]);
         }
         
         private OnStartOverlappingColumn(column: number)

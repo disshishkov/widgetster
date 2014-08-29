@@ -9,9 +9,14 @@ Widgetster is a re-wrote on [TypeScript](http://www.typescriptlang.org/) [Gridst
 
 ## Different between Widgetster and Gridster
 
-* To do
-* To do
-* To do
+* Source code of `Widgetster` is `TypeScript`, source code of `Gridster` is `JavaScript`.
+* `Widgetster` uses `PascalCase` notation for methods and options.
+* Removed option `avoid_overlapped_widgets`. For `Widgetster` it's alwasy `true`.
+* Removed option `autogenerate_stylesheet`. For `Widgetster` it's alwasy `false`. Because `Gridster` has a performance issues, which are related CSS `Widgetster` uses inline styles.
+* Added method `ResizeWidgetDimensions`
+* Added `callback` parameter to `AddWidget` method (former `add_widget`)
+* Added `row` parameter to `ResizeWidget` method (former `resize_widget`)
+
 
 ## License
 

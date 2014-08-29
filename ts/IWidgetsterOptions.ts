@@ -1,11 +1,9 @@
 module DS
 {
-    export interface IWidgetsterOptions
+    export interface IWidgetsterOptions extends IDimensions
     {
         Namespace: string;
         Selector: string;
-        Margins: number[];
-        BaseDimensions: number[];
         ExtraRows: number;
         ExtraCols: number;
         MinCols: number;
