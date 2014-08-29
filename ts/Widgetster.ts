@@ -401,7 +401,7 @@ module DS
         */
         public RemoveAllWidgets(callback?: Function): void
         {
-            this._widgetElements.each($.proxy((i?, w?) => { this.RemoveWidget(w, true, callback) }, this));
+            this._widgetElements.each($.proxy((i?, w?) => { this.RemoveWidget($(w), true, callback) }, this));
         }
         
         /**
@@ -571,6 +571,41 @@ module DS
             }
             
             return widget;
+        }
+        
+        /**
+        * Returns a serialized array of the widgets in the grid.
+        *
+        * @method GetSerializedWidgets
+        * @param {JQuery} [widgets] The collection of jQuery wrapped HMLElements you want to serialize. 
+        * If no argument is passed all widgets will be serialized.
+        * @return {Array} Returns an Array of Objects with the data specified in
+        *  the SerializeParams option.
+        */
+        public GetSerializedWidgets(widgets: JQuery): any[]
+        {
+            widgets || (widgets = this._widgetElements);
+            var result: any[] = [];
+            
+            widgets.each($.proxy((i?, w?) => 
+            {
+                var widget: JQuery = $(w);
+                result.push(this._options.SerializeParams(widget, new Coords(widget).Grid));
+            }, this));
+            
+            return result;
+        }
+        
+        /**
+        * Returns a serialized array of the widgets that have changed their position.
+        *
+        * @method GetSerializedChangedWidgets
+        * @return {Array} Returns an Array of Objects with the data specified in
+        *  the SerializeParams option.
+        */
+        public GetSerializedChangedWidgets(widgets: JQuery): any[]
+        {
+            return this.GetSerializedWidgets(this._changedWidgetElements);
         }
         
         private OnStartOverlappingColumn(column: number)
