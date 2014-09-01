@@ -28,16 +28,14 @@ module DS
     {
         private _defaultOptions: IWidgetsterOptions =
         {
-            Namespace: "",
             Selector: "li",
             Margins: [10, 10],
-            BaseDimensions: [400, 225],
+            BaseDimensions: [140, 140],
             ExtraRows: 0,
             ExtraCols: 0,
             MinCols: 1,
             MaxCols: null,
             MinRows: 15,
-            MaxSizeX: null,
             SerializeParams: (widgetElement: JQuery, widget: IWidget) => { return widget; },
             Collision: <ICollisionOptions>{},
             Draggable: <IDraggableOptions>{},
@@ -330,7 +328,7 @@ module DS
         }
         
         /**
-        * Add a new widget to the grid.
+        * Adds a new widget to the grid.
         *
         * @method AddWidget
         * @param {JQuery} [widget] The jQuery wrapped HTMLElement representing the widget.
@@ -339,10 +337,9 @@ module DS
         * @param {Number} [column] The column the widget should start in.
         * @param {Number} [row] The row the widget should start in.
         * @param {Number[]} [maxSize] Maximun size (in units) for width and height.
-        * @param {Function} [callback] Function executed when the widget is added.
         * @return {JQuery} Returns widget.
         */
-        public AddWidget(widget: JQuery, sizeX?: number, sizeY?: number, column?: number, row?: number, maxSize?: number[], callback?: Function): JQuery
+        public AddWidget(widget: JQuery, sizeX?: number, sizeY?: number, column?: number, row?: number, maxSize?: number[]): JQuery
         {
             sizeX || (sizeX = 1);
             sizeY || (sizeY = 1);
@@ -390,16 +387,11 @@ module DS
             
             this.SetDomGridHeight();
             
-            if (callback)
-            {
-                callback.call(this, addedWidget);
-            }
-            
             return addedWidget.fadeIn();
         }
         
         /**
-        * Remove a widget from the grid.
+        * Removes a widget from the grid.
         *
         * @method RemoveWidget
         * @param {JQuery} [widget] The jQuery wrapped HTMLElement representing the widget.
@@ -438,7 +430,7 @@ module DS
         }
         
         /**
-        * Remove all widgets from the grid.
+        * Removes all widgets from the grid.
         *
         * @method RemoveAllWidgets
         * @param {Function} [callback] Function executed for each widget removed.
@@ -449,7 +441,7 @@ module DS
         }
         
         /**
-        * Change the size of a widget. Width is limited to the current grid width.
+        * Changes the size of a widget. Width is limited to the current grid width.
         *
         * @method ResizeWidget
         * @param {JQuery} [widget] The jQuery wrapped HTMLElement representing the widget.
@@ -618,12 +610,12 @@ module DS
         }
         
         /**
-         * Resizes widget dimensions, such as Margins and BaseDimensions
+         * Resizes widget dimensions, such as Margins and BaseDimensions.
          * 
-         * @method ResizeWidgetDimensionss
+         * @method ResizeWidgetDimensions
          * @param {IDimensions} [dimensions] The new dimensions.
          * @param {Boolean} [isIgnoreEquals] Set to true to apply changing dimensiosn even
-         * old and new dimensions are equals.s
+         * old and new dimensions are equals.
          */ 
         public ResizeWidgetDimensions(dimensions: IDimensions, isIgnoreEquals: boolean): void
         {

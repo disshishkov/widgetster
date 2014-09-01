@@ -9,16 +9,14 @@ module DS
     {
         private _defaultOptions: ICollisionOptions =
         {
-            CollidersContext: document.body,
             OnOverlapStart: null,
             OnOverlapStop: null,
             OnOverlap: null
         };
         private _options: ICollisionOptions;
         private _el: JQuery;
-        private _colliders: JQuery;
+        private _colliders: Coords[] = [];
         private _lastCollidersCoords: Coords[] = [];
-        private _isInContext: boolean = false;
 
         public Area: number;
         public AreaCoords: Coords;
@@ -31,12 +29,11 @@ module DS
          * Initialize the Collision object.
          * 
          * @param {JQuery} [el] The JQuery object.
-         * @param {any} [colliders] Can be a jQuery collection of HTMLElements or an Array of Coords instances.
+         * @param {Coords[]} [colliders] Array of Coords instances.
          * @param {ICollisionOptions} [options] An object of options (see ICollisionOptions).
          */ 
-        constructor(el?: JQuery, colliders?: any, options?: ICollisionOptions)
+        constructor(el?: JQuery, colliders?: Coords[], options?: ICollisionOptions)
         {
-            //NOTE: follow colliders seems it should not be any
             if (!el && !colliders && !options)
             {
                 return;
@@ -44,15 +41,7 @@ module DS
 
             this._options = $.extend(this._defaultOptions, options);
             this._el = el;
-            if (typeof colliders == "string" || colliders instanceof jQuery)
-            {
-                this._colliders = $(colliders, this._options.CollidersContext).not(this._el);
-                this._isInContext = true;
-            }
-            else
-            {
-                this._colliders = $(colliders);
-            }
+            this._colliders = colliders;
 
             this.FindCollisions(null);
         }
@@ -101,8 +90,7 @@ module DS
 
             while(count--)
             {
-                //NOTE: think how to remove any.
-                var collider: JQuery = this._isInContext ? $(this._colliders[count]) : $((<any>this._colliders[count]).Data);
+                var collider: JQuery = $(this._colliders[count].Data);
                 var colliderCoords = new Coords(collider);
 
                 if (!this.IsOverlaped(playerCoords, colliderCoords))

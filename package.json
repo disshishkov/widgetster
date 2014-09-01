@@ -24,7 +24,7 @@
     },
 
     "name": "Widgetster",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "a drag-and-drop jquery plugin to build dashboard with widgets.",
     "site": "https://bitbucket.org/DuC/widgetster",
     "pluginName": "jquery.widgetster",
