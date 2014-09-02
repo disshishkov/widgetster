@@ -377,7 +377,7 @@ module DS
             }).addClass("ws-w").appendTo(this._el).hide();
             
             this._widgetElements = this._widgetElements.add(addedWidget);
-            this.RegisterWidget(addedWidget);
+            this.RegisterWidget(addedWidget, true);
             this.AddFauxRows(position.SizeY);
             
             if (maxSize)
@@ -1230,7 +1230,7 @@ module DS
                 MaxSizeY: parseInt(el.attr("data-ws-max-sizey"), 10) || null,
                 Element: el
             };
-            if (isCheckOverlaping && !this.IsCanMoveTo(widget, true))
+            if (!isCheckOverlaping || (isCheckOverlaping && !this.IsCanMoveTo(widget, true)))
             {
                 $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
                 el.attr(
