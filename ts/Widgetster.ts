@@ -657,7 +657,7 @@ module DS
             }, this));
             
             this.GenerateGrid();
-            this.GetWidgetsFromDom();
+            this.GetWidgetsFromDom(true);
             this.SetDomGridHeight();
         }
         
@@ -670,10 +670,10 @@ module DS
         * @return {Array} Returns an Array of Objects with the data specified in
         *  the SerializeParams option.
         */
-        public GetSerializedWidgets(widgets?: JQuery): any[]
+        public GetSerializedWidgets<T>(widgets?: JQuery): T[]
         {
             widgets || (widgets = this._widgetElements);
-            var result: any[] = [];
+            var result: T[] = [];
             
             widgets.each($.proxy((i?, w?) => 
             {
@@ -691,9 +691,9 @@ module DS
         * @return {Array} Returns an Array of Objects with the data specified in
         *  the SerializeParams option.
         */
-        public GetSerializedChangedWidgets(): any[]
+        public GetSerializedChangedWidgets<T>(): T[]
         {
-            return this.GetSerializedWidgets(this._changedWidgetElements);
+            return this.GetSerializedWidgets<T>(this._changedWidgetElements);
         }
         
         private IsPairArraysEqual(a: number[], b: number[]): boolean
@@ -1213,39 +1213,40 @@ module DS
                 })));
         }
         
-        private GetWidgetsFromDom(): void
+        private GetWidgetsFromDom(isCheckOverlaping?: boolean): void
         {
-            this._widgetElements.each($.proxy((i?, w?) => { this.RegisterWidget($(w)); }, this));
+            this._widgetElements.each($.proxy((i?, w?) => { this.RegisterWidget($(w), isCheckOverlaping); }, this));
         }
         
-        private RegisterWidget(el: JQuery): void
+        private RegisterWidget(el: JQuery, isCheckOverlaping?: boolean): void
         {
             var widget: IWidget = 
+            {
+                Column: parseInt(el.attr("data-ws-col"), 10),
+                Row: parseInt(el.attr("data-ws-row"), 10),
+                SizeX: parseInt(el.attr("data-ws-sizex"), 10),
+                SizeY: parseInt(el.attr("data-ws-sizey"), 10),
+                MaxSizeX: parseInt(el.attr("data-ws-max-sizex"), 10) || null,
+                MaxSizeY: parseInt(el.attr("data-ws-max-sizey"), 10) || null,
+                Element: el
+            };
+            if (isCheckOverlaping && !this.IsCanMoveTo(widget, true))
+            {
+                $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
+                el.attr(
                 {
-                    Column: parseInt(el.attr("data-ws-col"), 10),
-                    Row: parseInt(el.attr("data-ws-row"), 10),
-                    SizeX: parseInt(el.attr("data-ws-sizex"), 10),
-                    SizeY: parseInt(el.attr("data-ws-sizey"), 10),
-                    MaxSizeX: parseInt(el.attr("data-ws-max-sizex"), 10) || null,
-                    MaxSizeY: parseInt(el.attr("data-ws-max-sizey"), 10) || null,
-                    Element: el
-                };
-            
-            $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
-            el.attr(
-            {
-                "data-ws-col": widget.Column,
-                "data-ws-row": widget.Row,
-                "data-ws-sizex": widget.SizeX,
-                "data-ws-sizey": widget.SizeY
-            }).css(
-            {
-                "left": this.GetColumnStyle(widget.Column),
-                "top": this.GetRowStyle(widget.Row),
-                "width": this.GetXStyle(widget.SizeX),
-                "height": this.GetYStyle(widget.SizeY)
-            });
-            
+                    "data-ws-col": widget.Column,
+                    "data-ws-row": widget.Row,
+                    "data-ws-sizex": widget.SizeX,
+                    "data-ws-sizey": widget.SizeY
+                }).css(
+                {
+                    "left": this.GetColumnStyle(widget.Column),
+                    "top": this.GetRowStyle(widget.Row),
+                    "width": this.GetXStyle(widget.SizeX),
+                    "height": this.GetYStyle(widget.SizeY)
+                });
+            }
             // attach Coords object to player.
             new Coords(el, widget);
             
