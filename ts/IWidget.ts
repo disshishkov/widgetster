@@ -8,6 +8,8 @@ module DS
         SizeY: number;
         MaxSizeX: number;
         MaxSizeY: number;
+        MinSizeX: number;
+        MinSizeY: number;
         Element: JQuery;
     }
 }

@@ -5,9 +5,11 @@ module DS
         Items: string;
         Distance: number;
         IsLimit: boolean;
+        IsResize: boolean;
         OffsetLeft: number;
+        OffsetTop: number;
         IsAutoScroll: boolean;
-        IgnoreDragging: string[];
+        IgnoreDragging: any;
         Handle: string;
         ContainerWidth: number;
         IsMoveElement: boolean;

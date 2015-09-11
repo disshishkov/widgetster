@@ -26,7 +26,7 @@ module DS
      */ 
     export class Widgetster
     {
-        private _defaultOptions: IWidgetsterOptions =
+        private _defaultOptions: IWidgetsterOptions = 
         {
             Selector: "li",
             Margins: [10, 10],
@@ -34,18 +34,22 @@ module DS
             ExtraRows: 0,
             ExtraCols: 0,
             MinCols: 1,
-            MaxCols: null,
+            MaxCols: Infinity,
             MinRows: 15,
             SerializeParams: (widgetElement: JQuery, widget: IWidget) => { return widget; },
             Collision: <ICollisionOptions>{},
-            Draggable: <IDraggableOptions>{},
+            Draggable: <IDraggableOptions>
+            {
+                IgnoreDragging: Draggable.DefaultOptions.IgnoreDragging.slice(0)
+            },
             Resize: <IResizeOptions>
             {
                 IsEnabled: false,
-                Axes: ["x", "y", "both"],
+                Axes: ["both"],
                 HandleAppendTo: "",
                 HandleClass: "ws-resize-handle",
-                MaxSize: [Infinity, Infinity]
+                MaxSize: [Infinity, Infinity],
+                MinSize: [1, 1]
             }
         };
 
@@ -88,6 +92,7 @@ module DS
         private _resizeInitialData: IResizeData = <IResizeData>{};
         private _resizeLastData: IResizeData = <IResizeData>{};
         private _resizeMaxData: IResizeData = <IResizeData>{};
+        private _resizeMinData: IResizeData = <IResizeData>{};
         private _resizeDirection: IResizeDirection = <IResizeDirection>{};
         
         /**
@@ -108,6 +113,8 @@ module DS
             this._minWidgetWidth = (2 * this._options.Margins[0]) + this._options.BaseDimensions[0];
             this._minWidgetHeight = (2 * this._options.Margins[1]) + this._options.BaseDimensions[1];
                         
+            var resizeHandle: string = "." + this._options.Resize.HandleClass;
+            
             if (this._options.Resize.IsEnabled)
             {
                 this._resizeHandleTemplate = $.map(this._options.Resize.Axes, (type) =>
@@ -115,19 +122,23 @@ module DS
                     return '<span class="' + this._options.Resize.HandleClass 
                         + ' ' + this._options.Resize.HandleClass + '-' + type + '" />';
                 }).join("");
+                
+                if ($.isArray(this._options.Draggable.IgnoreDragging))
+                {
+                    this._options.Draggable.IgnoreDragging.push(resizeHandle);
+                }
             }
             
             this.GenerateGrid();            
             this.GetWidgetsFromDom();
-            this.SetDomGridHeight();
+            this.SetDomGridDimensions();
             this._wrapper.addClass("ready");
-            
-            var resizeHandle: string = "." + this._options.Resize.HandleClass;
+                        
             var draggableOptions: IDraggableOptions = $.extend(true, {}, this._options.Draggable, <IDraggableOptions>
             {
                 OffsetLeft: this._options.Margins[0],
-                ContainerWidth: this._containerWidth,
-                IgnoreDragging: ["INPUT", "TEXTAREA", "SELECT", "BUTTON", resizeHandle],
+                OffsetTop: this._options.Margins[1],
+                ContainerWidth: this._colsCount * this._containerWidth,
                 OnStart: $.proxy((event?: JQueryEventObject, data?: DraggableData) =>
                 {
                     this._widgetElements.filter(".player-revert").removeClass("player-revert");
@@ -136,11 +147,13 @@ module DS
                     
                     this._helper.add(this._player).add(this._wrapper).addClass("dragging");
                     this._player.addClass("player");
-                    
+
                     var coords = new Coords(this._player);
                     this._playerGrid = coords.Grid;
                     this._placeholderGrid = $.extend({}, this._playerGrid);
                     
+                    this._containerWidth = this._colsCount;
+                    this._el.css("width", this._containerWidth);
                     this._el.css("height", this._el.height() + (this._playerGrid.SizeY * this._minWidgetHeight));
                     
                     this._cellsOccupiedByPlayer = this.GetCellsOccupied(this._playerGrid);
@@ -225,7 +238,7 @@ module DS
                     this._cellsOccupiedByPlaceholder = <Cell>{};
                     this._cellsOccupiedByPlayer = <Cell>{};
                     
-                    this.SetDomGridHeight();                    
+                    this.SetDomGridDimensions();                    
                     this._el.trigger("dragstop.widgetster");
                 }, this),
                 OnDrag: Utils.Throttle((event: JQueryEventObject, data: DraggableData) => 
@@ -273,6 +286,7 @@ module DS
                     OffsetLeft: this._options.Margins[0],
                     ContainerWidth: this._containerWidth,
                     IsMoveElement: false,
+                    IsResize: true,
                     OnDrag: Utils.Throttle($.proxy((event?, data?) => { this.OnResize(event, data); }, this), 60),
                     OnStart: $.proxy((event?, data?) => { this.OnStartResize(event, data); }, this),
                     OnStop: $.proxy((event?, data?) => { Utils.Delay($.proxy(() => { this.OnStopResize(event, data); }, this), 120); }, this)
@@ -328,6 +342,29 @@ module DS
         }
         
         /**
+        * Destroy this widgetster by removing any sign of its presence, making it easy to avoid memory leaks.
+        *
+        * @method Destroy
+        */
+        public Destroy(): void
+        {
+            this._el.removeData("Widgetster");
+            this._windowElement.unbind(".widgetster");
+            
+            if (this._resizeApi != null)
+            {
+                this._resizeApi.Destroy();
+            }
+            
+            if (this._dragApi != null)
+            {
+                this._dragApi.Destroy();
+            }
+            
+            this._el.remove();
+        }
+        
+        /**
         * Adds a new widget to the grid.
         *
         * @method AddWidget
@@ -337,9 +374,13 @@ module DS
         * @param {Number} [column] The column the widget should start in.
         * @param {Number} [row] The row the widget should start in.
         * @param {Number[]} [maxSize] Maximun size (in units) for width and height.
+        * @param {Number[]} [minSize] Minimum size (in units) for width and height.
         * @return {JQuery} Returns widget.
         */
-        public AddWidget(widget: JQuery, sizeX?: number, sizeY?: number, column?: number, row?: number, maxSize?: number[]): JQuery
+        public AddWidget(widget: JQuery, 
+            sizeX?: number, sizeY?: number, 
+            column?: number, row?: number, 
+            maxSize?: number[], minSize?: number[]): JQuery
         {
             sizeX || (sizeX = 1);
             sizeY || (sizeY = 1);
@@ -377,7 +418,7 @@ module DS
             }).addClass("ws-w").appendTo(this._el).hide();
             
             this._widgetElements = this._widgetElements.add(addedWidget);
-            this.RegisterWidget(addedWidget, true);
+            this.RegisterWidgetElement(addedWidget, true);
             this.AddFauxRows(position.SizeY);
             
             if (maxSize)
@@ -385,7 +426,14 @@ module DS
                 Coords.UpdateGrid(addedWidget, <IWidget>{ MaxSizeX: maxSize[0], MaxSizeY: maxSize[1] });
             }
             
-            this.SetDomGridHeight();
+            if (minSize)
+            {
+                Coords.UpdateGrid(addedWidget, <IWidget>{ MinSizeX: minSize[0], MinSizeY: minSize[1] });
+            }
+            
+            this.SetDomGridDimensions();
+            
+            this._dragApi.SetLimits(this._colsCount * this._containerWidth);
             
             return addedWidget.fadeIn();
         }
@@ -420,7 +468,7 @@ module DS
                     nextWidgets.forEach($.proxy((w?, i?) => { this.MoveWidgetUp(w); }, this));
                 }
                 
-                this.SetDomGridHeight();
+                this.SetDomGridDimensions();
                 
                 if (callback)
                 {
@@ -447,15 +495,11 @@ module DS
         * @param {JQuery} [widget] The jQuery wrapped HTMLElement representing the widget.
         * @param {Number} [sizeX] The number of columns that will occupy the widget.
         * @param {Number} [sizeY] The number of rows that will occupy the widget.
-        * @param {Boolean} [isReposition] Set to false to not move the widget to
-        *  the left if there is insufficient space on the right.
-        *  By default <code>sizeX</code> is limited to the space available from
-        *  the column where the widget begins, until the last column to the right.
         * @param {Number} [row] The row.
         * @param {Function} [callback] Function executed when the widget is resized.
         * @return {JQuery} Returns widget.
         */
-        public ResizeWidget(widget: JQuery, sizeX: number, sizeY: number, isReposition?: boolean, row?: number, callback?: Function): JQuery
+        public ResizeWidget(widget: JQuery, sizeX: number, sizeY: number, row?: number, callback?: Function): JQuery
         {
             if (row != null)
             {
@@ -464,33 +508,32 @@ module DS
             
             var widgetCoords: Coords = new Coords(widget);
             var widgetData: IWidget = widgetCoords.Grid;
+            
+            var oldSizeY: number = widgetData.SizeY;
+            var column: number = widgetData.Column;
+            
             sizeX || (sizeX = widgetData.SizeX);
             sizeY || (sizeY = widgetData.SizeY);
-            (isReposition != null) || (isReposition = true);
             
-            if (sizeX > this._colsCount)
+            if (this._options.MaxCols != Infinity)
             {
-                sizeX = this._colsCount;
+                sizeX = Math.min(sizeX, this._options.MaxCols - column + 1);
             }
-            
-            var oldSizeX: number = widgetData.SizeX;
-            var oldSizeY: number = widgetData.SizeY;
-            var oldColumn: number = widgetData.Column;
-            var newColumn: number = oldColumn;
-            
-            if (isReposition && oldColumn + sizeX - 1 > this._colsCount)
-            {
-                newColumn = Math.max(1, this._colsCount + 1 - sizeX);
-            }
-            
+
             if (sizeY > oldSizeY)
             {
                 this.AddFauxRows(Math.max(sizeY - oldSizeY, 0));
             }
             
+            var playerColumn = (column + sizeX - 1);
+            if (playerColumn > this._colsCount)
+            {
+                this.AddFauxCols(playerColumn - this._colsCount);
+            }
+            
             var newWidgetData: IWidget = <IWidget>
             {
-                Column: newColumn,
+                Column: column,
                 Row: row || widgetData.Row,
                 SizeX: sizeX,
                 SizeY: sizeY
@@ -599,7 +642,7 @@ module DS
             
             this.MoveWidgetUp(widget);
             
-            this.SetDomGridHeight();
+            this.SetDomGridDimensions();
             
             if (callback)
             {
@@ -658,7 +701,7 @@ module DS
             
             this.GenerateGrid();
             this.GetWidgetsFromDom(true);
-            this.SetDomGridHeight();
+            this.SetDomGridDimensions();
         }
         
         /**
@@ -1089,23 +1132,43 @@ module DS
             }, this));
         }
         
-        private SetDomGridHeight(): void
+        private SetDomGridDimensions(): void
         {
-            var rows: number[] = [];            
+            var highesCell: Cell = this.GetHihgestOccupiedCell();            
+            var row: number = highesCell.Rows[0];
+            var col: number = highesCell.Columns[0];
+
+            this._containerWidth = Math.min(this._colsCount, Math.max(col, this._options.MinCols)) * this._minWidgetWidth;
+
+            this._el.css("width", this._containerWidth);
+            this._el.css("height", row * this._minWidgetHeight);
+        }
+        
+        private GetHihgestOccupiedCell() : Cell
+        {
+            var cell = new Cell();
+            
+            var rowsLength: number = this._gridMap[1].length;
+            var rows: number[] = [];
+            var cols: number[] = [];
+            
             for(var c = this._gridMap.length - 1; c >= 1; c--)
             {
-                for (var r = this._gridMap[c].length - 1; r >= 1; r--)
+                for (var r = rowsLength - 1; r >= 1; r--)
                 {
                     if (this.GetWidgetElement(c, r) != null)
                     {
                         rows.push(r);
+                        cols.push(c);
                         break;
                     }
                 }
-            }            
-            var row: number = Math.max.apply(Math, rows);
+            }    
+              
+            cell.Columns.push(Math.max.apply(Math, cols));
+            cell.Rows.push(Math.max.apply(Math, rows));
             
-            this._el.css("height", row * this._minWidgetHeight);
+            return cell;
         }
         
         private GetWidgetElement(col: number, row: number): JQuery
@@ -1137,38 +1200,25 @@ module DS
             
             var maxCols: number = this._options.MaxCols;
             var minCols: number = Math.max.apply(Math, this._widgetElements.map((i, w) => { return $(w).attr("data-ws-col"); }));
-            
-            // get all rows that could be occupied by the current widgets
-            var maxRows: number = this._options.ExtraRows;
-            this._widgetElements.each((i, w) => { maxRows += (+$(w).attr("data-ws-sizey")); });
-            
+
             this._colsCount = Math.max(minCols, (Math.floor(wrapperWidth / this._minWidgetWidth) + this._options.ExtraCols), this._options.MinCols);
-            if (maxCols && maxCols >= minCols && maxCols < this._colsCount)
+            if (maxCols != Infinity && maxCols >= minCols && maxCols < this._colsCount)
             {
                 this._colsCount = maxCols;
             }
+            
+            // get all rows that could be occupied by the current widgets
+            var maxRows: number = this._options.ExtraRows;
+            this._widgetElements.each((i, w) => { maxRows += (+$(w).attr("data-ws-sizey")); });           
             
             this._rowsCount = Math.max(maxRows, this._options.MinRows);
             
             this._basePosition.left = (this._windowElement.width() - wrapperWidth) / 2;
             this._basePosition.top = this._wrapper.offset().top;
             
-            // left and right gutters not included
-            this._containerWidth = (this._colsCount * this._options.BaseDimensions[0]) + ((this._colsCount - 1) * 2 * this._options.Margins[0]);
-            
-            if (this._resizeApi)
-            {
-                this._resizeApi.UpdateOptions(<IDraggableOptions>{ ContainerWidth: this._containerWidth });
-            }
-            
-            if (this._dragApi)
-            {
-                this._dragApi.UpdateOptions(<IDraggableOptions>{ ContainerWidth: this._containerWidth });
-            }
-            
             this._fauxGrid = [];
             this._gridMap = [];
-            
+
             for(var col = this._colsCount; col > 0; col--)
             {
                 this._gridMap[col] = [];
@@ -1195,6 +1245,23 @@ module DS
             this._rowsCount = maxRows;
         }
         
+        private AddFauxCols(cols: number): void
+        {
+            var actualCols: number = this._colsCount;
+            var maxCols: number = actualCols + (cols || 1);
+            maxCols = Math.min(maxCols, this._options.MaxCols)
+            
+            for (var c = actualCols + 1; c <= maxCols; c++)
+            {
+                for (var r = this._rowsCount; r >= 1; c--)
+                {
+                    this.AddFauxCell(r, c);
+                }
+            }            
+            
+            this._colsCount = maxCols;
+        }
+        
         private AddFauxCell(row: number, col: number): void
         {
             if (!$.isArray(this._gridMap[col]))
@@ -1213,12 +1280,7 @@ module DS
                 })));
         }
         
-        private GetWidgetsFromDom(isCheckOverlaping?: boolean): void
-        {
-            this._widgetElements.each($.proxy((i?, w?) => { this.RegisterWidget($(w), isCheckOverlaping); }, this));
-        }
-        
-        private RegisterWidget(el: JQuery, isCheckOverlaping?: boolean): void
+        private GetWidgetFromElement(el: JQuery): IWidget
         {
             var widget: IWidget = 
             {
@@ -1228,8 +1290,40 @@ module DS
                 SizeY: parseInt(el.attr("data-ws-sizey"), 10),
                 MaxSizeX: parseInt(el.attr("data-ws-max-sizex"), 10) || null,
                 MaxSizeY: parseInt(el.attr("data-ws-max-sizey"), 10) || null,
+                MinSizeX: parseInt(el.attr("data-ws-min-sizex"), 10) || null,
+                MinSizeY: parseInt(el.attr("data-ws-min-sizey"), 10) || null,
                 Element: el
             };
+            
+            return widget;
+        }
+        
+        private GetWidgetsFromDom(isCheckOverlaping?: boolean): void
+        {
+            var widgets: IWidget[] = [];            
+            this._widgetElements.each($.proxy((i?, w?) => { widgets.push(this.GetWidgetFromElement($(w))); }, this));
+            
+            widgets = this.SortWidgetsByRowAndColumnAsc(widgets);            
+            widgets.forEach($.proxy((w?, i?) => { this.RegisterWidget(w, isCheckOverlaping); }, this));
+        }
+        
+        private RegisterWidgetElement(el: JQuery, isCheckOverlaping?: boolean): void
+        {
+            this.RegisterWidget(this.GetWidgetFromElement(el), isCheckOverlaping);
+        }
+        
+        private RegisterWidget(widget: IWidget, isCheckOverlaping?: boolean): void
+        {
+            var el: JQuery = widget.Element;
+            
+            var rowForGoUp: number = this.GetRowForGoWidgetUp(widget);
+            if (rowForGoUp != 0)
+            {
+                widget.Row = rowForGoUp;
+                el.attr("data-ws-row", rowForGoUp)
+                this._el.trigger("positionchanged.widgetster", [widget]);
+            }
+            
             if (!isCheckOverlaping || (isCheckOverlaping && !this.IsCanMoveTo(widget, true)))
             {
                 $.extend(widget, this.GetNextPosition(widget.SizeX, widget.SizeY));
@@ -1513,7 +1607,7 @@ module DS
                 }
             }, this));
             
-            this.SetDomGridHeight();
+            this.SetDomGridDimensions();
         }
         
         private SortWidgetsElementsByRowAsc(widgets: JQuery[]): JQuery[]
@@ -1524,6 +1618,11 @@ module DS
         private SortWidgetsByRowAsc(widgets: IWidget[]): IWidget[]
         {
             return widgets.sort((a, b) => { return (a.Row > b.Row) ? 1 : -1; });
+        }
+        
+        private SortWidgetsByRowAndColumnAsc(widgets: IWidget[]): IWidget[]
+        {
+            return widgets.sort((a, b) => { return (a.Row > b.Row || (a.Row == b.Row && a.Column > b.Column)) ? 1 : -1; });
         }
         
         private GetNextRow(widget: IWidget): number
@@ -1758,10 +1857,7 @@ module DS
             
             if (validPositions.length > 0)
             {
-                validPositions = validPositions.sort((a, b) => 
-                {
-                    return (a.Row > b.Row || a.Row == b.Row && a.Column > b.Column) ? 1 : -1;
-                });
+                validPositions = this.SortWidgetsByRowAndColumnAsc(validPositions); 
                 return validPositions[0];
             }
             
@@ -1773,14 +1869,21 @@ module DS
             var incUnitsX: number = Math.ceil((data.Pointer.DiffLeft / (this._options.BaseDimensions[0] + this._options.Margins[0] * 2)) - 0.2);
             var incUnitsY: number = Math.ceil((data.Pointer.DiffTop / (this._options.BaseDimensions[1] + this._options.Margins[1] * 2)) - 0.2);
             
+            var maxCols: number = (this._containerWidth / this._minWidgetWidth) - this._resizeInitialData.Column + 1;
+            var limitWidth: number = ((maxCols * this._minWidgetWidth) - this._options.Margins[0] * 2);
+            
             var sizeX: number = Math.max(1, this._resizeInitialData.SizeX + incUnitsX);
-            sizeX = Math.min(sizeX, this._resizeMaxData.SizeX);
+            sizeX = Math.max(Math.min(sizeX, this._resizeMaxData.SizeX), this._resizeMinData.SizeX);
+            sizeX = Math.min(maxCols, sizeX);
             
             var sizeY: number = Math.max(1, this._resizeInitialData.SizeY + incUnitsY);
-            sizeY = Math.min(sizeY, this._resizeMaxData.SizeY);
+            sizeY = Math.max(Math.min(sizeY, this._resizeMaxData.SizeY), this._resizeMinData.SizeY);
             
             var maxWidth: number = (this._resizeMaxData.SizeX * this._options.BaseDimensions[0]) + ((sizeX - 1) * this._options.Margins[0] * 2);
             var maxHeight: number = (this._resizeMaxData.SizeY * this._options.BaseDimensions[1]) + ((sizeY - 1) * this._options.Margins[1] * 2);
+            
+            var minWidth: number = (this._resizeMinData.SizeX * this._options.BaseDimensions[0]) + ((sizeX - 1) * this._options.Margins[0] * 2);
+            var minHeight: number = (this._resizeMinData.SizeY * this._options.BaseDimensions[1]) + ((sizeY - 1) * this._options.Margins[1] * 2);
             
             if (this._resizeDirection.IsRight)
             {
@@ -1793,18 +1896,21 @@ module DS
             
             if (!this._resizeDirection.IsBottom)
             {
-                this._resizedWidgetElements.css("width", Math.min(this._resizeInitialData.Width + data.Pointer.DiffLeft, maxWidth));
+                this._resizedWidgetElements.css("width", Math.max(Math.min(this._resizeInitialData.Width + data.Pointer.DiffLeft, maxWidth), minWidth));
             }
             
             if (!this._resizeDirection.IsRight)
             {
-                this._resizedWidgetElements.css("height", Math.min(this._resizeInitialData.Height + data.Pointer.DiffTop, maxHeight));
+                this._resizedWidgetElements.css("height", Math.max(Math.min(this._resizeInitialData.Height + data.Pointer.DiffTop, maxHeight), minHeight));
             }
             
             if (sizeX != this._resizeLastData.SizeX
                 || sizeY != this._resizeLastData.SizeY)
             {
-                this._resizedWidgetElements = this.ResizeWidget(this._resizedWidgetElements, sizeX, sizeY, false);
+                this._resizedWidgetElements = this.ResizeWidget(this._resizedWidgetElements, sizeX, sizeY);
+                
+                this._containerWidth = Math.max(this._colsCount, this._options.MinCols) * this._minWidgetWidth;            
+                this._el.css("width", this._containerWidth);  
                 
                 this._resizePreviewHolder.css(
                     {
@@ -1838,12 +1944,18 @@ module DS
                 "height": this._resizePreviewHolder.css("height")
             });
             
-            Utils.Delay($.proxy(() => { this._resizePreviewHolder.remove().css({ "min-width": "", "min-height": "", "width": "", "height": "" }); }, this), 300);
+            Utils.Delay($.proxy(() => 
+            { 
+                this._resizePreviewHolder.remove()
+                    .css({ "min-width": "", "min-height": "", "width": "", "height": "" });
+                    
+               if (this._options.Resize.OnStop)
+               {
+                   this._options.Resize.OnStop.call(this, event, data, this._resizedWidgetElements);
+               }
+            }, this), 300);
             
-            if (this._options.Resize.OnStop)
-            {
-                this._options.Resize.OnStop.call(this, event, data, this._resizedWidgetElements);
-            }
+            this.SetDomGridDimensions();            
         }
         
         private OnStartResize(event: JQueryEventObject, data: DraggableData): void
@@ -1852,23 +1964,35 @@ module DS
             
             var resizeCoords: Coords = new Coords(this._resizedWidgetElements);
             var resizeGrid: IWidget = resizeCoords.Grid;
-            this._resizeInitialData = 
+            
+            this._resizeInitialData = <IResizeData>
             {
                 Height: resizeCoords.Data.Height,
                 Width: resizeCoords.Data.Width,
                 SizeX: resizeGrid.SizeX,
-                SizeY: resizeGrid.SizeY
+                SizeY: resizeGrid.SizeY,
+                Column: resizeGrid.Column
             };
             this._resizeLastData = <IResizeData>
             {
                 SizeX: this._resizeInitialData.SizeX,
-                SizeY: this._resizeInitialData.SizeY
+                SizeY: this._resizeInitialData.SizeY,
+                Column: this.GetHihgestOccupiedCell().Columns[0]
             };
             this._resizeMaxData = <IResizeData>
             {
-                SizeX: Math.min(resizeGrid.MaxSizeX || this._options.Resize.MaxSize[0], this._colsCount - resizeGrid.Column + 1),
+                SizeX: Math.min(resizeGrid.MaxSizeX || this._options.Resize.MaxSize[0], this._options.MaxCols - resizeGrid.Column + 1),
                 SizeY: resizeGrid.MaxSizeY || this._options.Resize.MaxSize[1]
             };
+            this._resizeMinData = <IResizeData>
+            {
+                SizeX: resizeGrid.MinSizeX || this._options.Resize.MinSize[0] || 1,
+                SizeY: resizeGrid.MinSizeY || this._options.Resize.MinSize[1] || 1
+            };
+            
+            this._containerWidth = Math.max(this._colsCount, this._options.MinCols) * this._minWidgetWidth;            
+            this._el.css("width", this._containerWidth);   
+            
             this._resizeDirection =
             {
                 IsRight: data.Player.is("." + this._options.Resize.HandleClass + "-x"),

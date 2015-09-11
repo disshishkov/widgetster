@@ -7,24 +7,25 @@ module DS
      */ 
     export class Collision
     {
-        private _defaultOptions: ICollisionOptions =
+        public static DefaultOptions: ICollisionOptions = 
         {
             OnOverlapStart: null,
             OnOverlapStop: null,
             OnOverlap: null
         };
-        private _options: ICollisionOptions;
-        private _el: JQuery;
-        private _colliders: Coords[] = [];
-        private _lastCollidersCoords: Coords[] = [];
-
+        
         public Area: number;
         public AreaCoords: Coords;
         public Region: string;
         public Collider: JQuery;
         public ColliderCoords: Coords;
         public PlayerCoords: Coords;
-
+        
+        private _options: ICollisionOptions;
+        private _el: JQuery;
+        private _colliders: Coords[] = [];
+        private _lastCollidersCoords: Coords[] = [];        
+        
         /**
          * Initialize the Collision object.
          * 
@@ -32,14 +33,14 @@ module DS
          * @param {Coords[]} [colliders] Array of Coords instances.
          * @param {ICollisionOptions} [options] An object of options (see ICollisionOptions).
          */ 
-        constructor(el?: JQuery, colliders?: Coords[], options?: ICollisionOptions)
+        constructor(el?: JQuery, colliders?: Coords[], options?: ICollisionOptions) 
         {
             if (!el && !colliders && !options)
             {
                 return;
             }
 
-            this._options = $.extend(this._defaultOptions, options);
+            this._options = $.extend(Collision.DefaultOptions, options);
             this._el = el;
             this._colliders = colliders;
 
@@ -55,7 +56,7 @@ module DS
          * 
          * @method GetClosestColliders.
          */ 
-        public GetClosestColliders(playerCoordsData: ICoordsData): Collision[]
+        public GetClosestColliders(playerCoordsData: ICoordsData): Collision[] 
         {
             var colliders: Collision[] = this.FindCollisions(playerCoordsData);
 

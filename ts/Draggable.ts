@@ -7,12 +7,14 @@ module DS
      */ 
     export class Draggable
     {
-        private _defaultOptions: IDraggableOptions =
+        public static DefaultOptions: IDraggableOptions =
         {
             Items: ".ws-w",
             Distance: 4,
             IsLimit: true,
+            IsResize: false,
             OffsetLeft: 0,
+            OffsetTop: 0,
             IsAutoScroll: true,
             IgnoreDragging: ["INPUT", "TEXTAREA", "SELECT", "BUTTON"],
             Handle: null,
@@ -23,11 +25,11 @@ module DS
             OnStart: null,
             OnStop: null
         };
+        
         private _options: IDraggableOptions;
 
         private _windowElement: JQuery = $(window);
-        private _bodyElement: JQuery = $(document.body);
-        private _documentElement: JQuery = $(document);
+        private _dicumentElement: JQuery = $(document);
         private _player: JQuery;
         private _helper: JQuery;
         private _container: JQuery;
@@ -42,17 +44,17 @@ module DS
         private _isDragStart: boolean = false;
         private _isDisabled: boolean = false;
         
-        private _scrollOffset: number = 0;
+        private _winOffsetX: number = 0;
+        private _winOffsetY: number = 0;
         private _playerMaxLeft: number;
         private _playerMinLeft: number;
         private _windowHeight: number;
-        private _documentHeight: number;
+        private _windowWidth: number;
+        
+        private _idCounter: number = 0;
+        private _namespace: string = "";
 
-        private _pointerEvents = new PointerEvents(
-            this._isTouch ? "touchstart.widgetster-draggable" : "mousedown.widgetster-draggable",
-            this._isTouch ? "touchmove.widgetster-draggable" : "mousemove.widgetster-draggable",
-            this._isTouch ? "touchend.widgetster-draggable" : "mouseup.widgetster-draggable"
-        );
+        private _pointerEvents: PointerEvents = null;
 
         /**
          * Initialize the Draggable object.
@@ -62,11 +64,20 @@ module DS
          */ 
         constructor(container: JQuery, options: IDraggableOptions)
         {
-            this._options = $.extend({}, this._defaultOptions, options);
+            this._options = $.extend({}, Draggable.DefaultOptions, options);
+            this._namespace = ".widgetster-draggable" + this.GetUniqueId();
+            
+            this._pointerEvents = new PointerEvents(
+                this.NamespacedEvent("touchstart") + " " + this.NamespacedEvent("mousedown"),
+                this.NamespacedEvent("touchmove") + " " + this.NamespacedEvent("mousemove"),
+                this.NamespacedEvent("touchend") + " " + this.NamespacedEvent("mouseup")
+            );
+            
             this._playerMinLeft = 0 + this._options.OffsetLeft;
             this._container = container;
-            this.CalculatePositions();
-            this._container.css("position", "relative");
+            this.CalculateDimensions();
+            var pos: string = this._container.css("position");
+            this._container.css("position", (pos === "static" ? "relative" : pos));
 
             this._container.on(
                 "selectstart.widgetster-draggable",
@@ -77,7 +88,7 @@ module DS
                 this._options.Items,
                 $.proxy((event?) => { return this.DragHandler(event); }, this));
 
-            this._bodyElement.on(
+            this._dicumentElement.on(
                 this._pointerEvents.End,
                 $.proxy((event?) =>
                 {
@@ -86,7 +97,7 @@ module DS
                     {
                         return true;
                     }
-                    this._bodyElement.off(this._pointerEvents.Move);
+                    this._dicumentElement.off(this._pointerEvents.Move);
                     if (this._isDragStart)
                     {
                         return this.OnDragStop(event);
@@ -94,8 +105,8 @@ module DS
                 }, this));
 
             this._windowElement.bind(
-                "resize.widgetster-draggable",
-                Utils.Throttle($.proxy(this.CalculatePositions, this), 200));
+                this.NamespacedEvent("resize"),
+                Utils.Throttle($.proxy(this.CalculateDimensions, this), 200));
         }
         
         /**
@@ -118,9 +129,9 @@ module DS
         public Destroy(): void
         {
             this.Disable();
-            this._container.off(".widgetster-draggable");
-            this._bodyElement.off(".widgetster-draggable");
-            this._windowElement.off(".widgetster-draggable");
+            this._container.off(this._namespace);
+            this._dicumentElement.off(this._namespace);
+            this._windowElement.off(this._namespace);
         }
 
         /**
@@ -142,12 +153,28 @@ module DS
         {
             this._isDisabled = false;
         }
+        
+        /**
+         * Sets draggable limits.
+         * 
+         * @param {number} [containterWidth] The width of container.
+         * 
+         * @method SetLimits.
+         */
+        public SetLimits(containterWidth: number): void
+        {
+            var playerWidth = (this._player != null) ? this._player.width() : 0;
+            containterWidth || (containterWidth = this._container.width());
+            this._playerMaxLeft = (containterWidth - playerWidth + this._options.OffsetLeft);
+            
+            this._options.ContainerWidth = containterWidth;
+        }
 
         private GetMousePosition(event: JQueryEventObject): JQueryCoordinates
         {
             var e = event;
 
-            if (this._isTouch)
+            if (e.originalEvent && e.originalEvent.touches)
             {
                 var oe = e.originalEvent;
                 e = oe.touches.length ? oe.touches[0] : oe.changedTouches[0];
@@ -167,8 +194,10 @@ module DS
             var diffX: number = Math.round(mousePosition.left - this._initialMousePosition.left);
             var diffY: number = Math.round(mousePosition.top - this._initialMousePosition.top);
 
-            var left: number = Math.round(this._initialOffset.left + diffX - this._basePosition.left);
-            var top: number = Math.round(this._initialOffset.top + diffY - this._basePosition.top + this._scrollOffset);
+            var left: number = Math.round(this._initialOffset.left + diffX 
+                - this._basePosition.left + this._windowElement.scrollLeft() - this._winOffsetX);
+            var top: number = Math.round(this._initialOffset.top + diffY 
+                - this._basePosition.top + this._windowElement.scrollTop() - this._winOffsetY);
 
             if (this._options.IsLimit)
             {
@@ -184,7 +213,12 @@ module DS
             
             var offset: DraggableData = new DraggableData();
             offset.Position = { left: left, top: top };
-            offset.Pointer = { Left: mousePosition.left, Top: mousePosition.top, DiffLeft: diffX, DiffTop: diffY + this._scrollOffset };
+            offset.Pointer = { 
+                Left: mousePosition.left, 
+                Top: mousePosition.top, 
+                DiffLeft: diffX + this._windowElement.scrollLeft() - this._winOffsetX, 
+                DiffTop: diffY + this._windowElement.scrollTop() - this._winOffsetY 
+            };
             
             return offset;
         }
@@ -200,36 +234,58 @@ module DS
         
         private ManageScroll(data: DraggableData): void
         {
+            this.ScrollIn(true, data);
+            this.ScrollIn(false, data);
+        }
+        
+        private ScrollIn(isX: boolean, data: DraggableData): void
+        {
             var mouseZoneOffset: number = 50;
             var scrollOffset: number = 30;
+            var nextScroll: number = null;
             
-            var nextScrollTop: number = null;
-            var scrollTop: number = this._windowElement.scrollTop();
+            var windowSize: number = isX ? this._windowWidth : this._windowHeight;
+            var documentSize: number = isX ? $(document).width() : $(document).height();
+            var playerSize: number = isX ? this._player.width() : this._player.height();
+            var scroll: number = isX ? this._windowElement.scrollLeft() : this._windowElement.scrollTop();
+            var pointerPos: number = isX ? data.Pointer.Left : data.Pointer.Top;
             
-            var minWindowY: number = scrollTop;
-            var maxWindowY: number = minWindowY + this._windowHeight;
+            var minWindowPos: number = scroll;
+            var maxWindowPos: number = minWindowPos + windowSize;
             
-            var mouseDownZone: number = maxWindowY - mouseZoneOffset;
-            var mouseUpZone: number = minWindowY + mouseZoneOffset;
-            var absMouseTop: number = minWindowY + data.Pointer.Top;
+            var mouseDownZone: number = maxWindowPos - mouseZoneOffset;
+            var mouseUpZone: number = minWindowPos + mouseZoneOffset;
+            var absMousePos: number = minWindowPos + pointerPos;
             
-            if (absMouseTop >= mouseDownZone)
+            if (absMousePos >= mouseDownZone)
             {
-                nextScrollTop = scrollTop + scrollOffset;
-                if (nextScrollTop < (this._documentHeight - this._windowHeight + this._player.height()))
+                nextScroll = scroll + scrollOffset;
+                if (nextScroll < (documentSize - windowSize + playerSize))
                 {
-                    this._windowElement.scrollTop(nextScrollTop);
-                    this._scrollOffset += scrollOffset;
+                    if (isX)
+                    {
+                        this._windowElement.scrollLeft(nextScroll);
+                    }
+                    else
+                    {
+                        this._windowElement.scrollTop(nextScroll);
+                    }                    
                 }
             }
             
-            if (absMouseTop <= mouseUpZone)
+            if (absMousePos <= mouseUpZone)
             {
-                nextScrollTop = scrollTop - scrollOffset;
-                if (nextScrollTop > 0)
+                nextScroll = scroll - scrollOffset;
+                if (nextScroll > 0)
                 {
-                    this._windowElement.scrollTop(nextScrollTop);
-                    this._scrollOffset -= scrollOffset;
+                    if (isX)
+                    {
+                        this._windowElement.scrollLeft(nextScroll);
+                    }
+                    else
+                    {
+                        this._windowElement.scrollTop(nextScroll);
+                    }
                 }
             }
         }
@@ -263,7 +319,8 @@ module DS
             this._isDragging = true;
             this._isDragStart = true;
             
-            this._scrollOffset = 0;
+            this._winOffsetX = this._windowElement.scrollLeft();
+            this._winOffsetY = this._windowElement.scrollTop();
             this._basePosition = this._container.offset();
             this._initialOffset = this._player.offset();            
             
@@ -272,7 +329,7 @@ module DS
                 this._helper = this._player.clone().appendTo(this._container).addClass("ws-helper");
             }
             
-            this._playerMaxLeft = ((this._options.ContainerWidth || this._container.width()) - this._player.width() + this._options.OffsetLeft);
+            this.SetLimits(this._options.ContainerWidth);
             
             if (this._options.OnStart)
             {
@@ -315,10 +372,10 @@ module DS
             }
 
             var isFirst: boolean = true;
-            this._player = $(event.currentTarget);            
+            this._player = $(event.currentTarget);
             this._initialMousePosition = this.GetMousePosition(event);
             
-            this._bodyElement.on(this._pointerEvents.Move, (e: JQueryEventObject) => 
+            this._dicumentElement.on(this._pointerEvents.Move, (e: JQueryEventObject) => 
             {
                 var mousePosition: JQueryCoordinates = this.GetMousePosition(e);
                 
@@ -353,14 +410,29 @@ module DS
             {
                 return !$(event.target).is(this._options.Handle);
             }
+            
+            if ($.isFunction(this._options.IgnoreDragging))
+            {
+                return this._options.IgnoreDragging(event);
+            }
 
             return $(event.target).is(this._options.IgnoreDragging.join(", "));
         }
 
-        private CalculatePositions(): void
+        private CalculateDimensions(): void
         {
             this._windowHeight = this._windowElement.height();
-            this._documentHeight = this._documentElement.height();
+            this._windowWidth = this._windowElement.width();
+        }
+        
+        private GetUniqueId(): string
+        {
+            return (++this._idCounter).toString();
+        }
+        
+        private NamespacedEvent(event: string): string
+        {
+            return (event || "") + this._namespace;
         }
     }
 }

@@ -147,6 +147,9 @@ module DS
                     this.Data.Left = jqCoords.left;
                 }
             }
+            
+            typeof this.Data.Left === "undefined" && (this.Data.Left = this.X1);
+            typeof this.Data.Top === "undefined" && (this.Data.Top = this.Y1);
 
             this.X1 = this.Data.Left;
             this.Y1 = this.Data.Top;
